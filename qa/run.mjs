@@ -106,6 +106,8 @@ try {
   await tapStation(page, s1[1]); await tapStation(page, s1[2]);
   await page.reload(); await page.click("#go-d");
   check("途中で閉じても、通った駅のまま続きから", (await cur(page)).length === 3);
+  await page.click("#back"); await page.click("#go-p"); await page.locator(".pick button").first().click(); await page.click("#back"); await page.click("#go-d");
+  check("練習を始めても、今日の途中経過は消えない（通った駅のまま続きから）", (await cur(page)).length === 3 && (await page.evaluate(() => window.__rh.mode())) === "d");
   for (const i of s1.slice(3)) await tapStation(page, i);
   check("全部の駅を通って終点に着くと開通・ヒント1回で★2", (await page.textContent(".verdict")).includes("開通") && (await page.locator(".verdict .stars").textContent()).replace(/[^★]/g, "").length === 3 && (await page.locator(".verdict .stars .off").textContent()).length === 1);
   check("開通したあとは駅を押しても動かない", await page.isDisabled("#undo"));
@@ -144,6 +146,12 @@ try {
   for (const i of (await sol(page)).slice(1)) await page.evaluate((i) => window.__rh.tryStep(i), i);
   await page.click("#next");
   check("練習は今日の記録を増やさず、終わると練習の選び直しへ", (await page.evaluate(() => Object.keys(window.__rh.load().days).length)) === 1 && (await page.locator(".pick").count()) === 1);
+  // 別のタブで先に進んでいたら、古い画面の開通は記録に足さず、今の路線を出し直す
+  await page.locator(".pick button").first().click();
+  const cnt0 = await page.evaluate(() => window.__rh.load().cnt);
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("rosen-v1")); s.runs.p.tags[0] = "p:0:12345"; localStorage.setItem("rosen-v1", JSON.stringify(s)); });
+  for (const i of (await sol(page)).slice(1)) await page.evaluate((i) => window.__rh.tryStep(i), i);
+  check("古いタブで開通しても数えず、今の路線（別の画面で変わった方）を出し直す", (await page.evaluate(() => window.__rh.load().cnt)) === cnt0 && (await page.locator(".verdict").count()) === 0);
   await page.close();
 
   // スマホ幅：はみ出さない・押せる所は44px以上・駅の押せる広さ
@@ -156,8 +164,8 @@ try {
     await p3.close();
   }
   { const p4 = await newPage(320, 700); await p4.click("#howto-ok");
-    await p4.evaluate(() => { const k = window.__rh.todayKey(); const s = { v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, run: { mode: "h", date: k, tags: [`h:${k}`], i: 0, hints: [], path: null }, kofi: {} }; localStorage.setItem("rosen-v1", JSON.stringify(s)); });
-    await p4.reload(); await p4.evaluate(() => window.__rh.play());
+    await p4.evaluate(() => { const k = window.__rh.todayKey(); const s = { v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, runs: { h: { mode: "h", date: k, tags: [`h:${k}`], i: 0, hints: [], path: null } }, kofi: {} }; localStorage.setItem("rosen-v1", JSON.stringify(s)); });
+    await p4.reload(); await p4.evaluate(() => window.__rh.play("h"));
     const gap = await p4.evaluate(() => { const svg = document.querySelector("#map svg"); return svg.getBoundingClientRect().width / svg.viewBox.baseVal.width * 60; });
     check("幅320pxの特急でも、駅と駅の間が40px以上（押しまちがえにくい）", gap >= 40, `${gap.toFixed(0)}px`);
     await p4.close(); }

@@ -170,7 +170,8 @@ function puzzle(tag) { // tag: "d:<日付>:<0-2>" / "h:<日付>" / "p:<大きさ
 const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 
 // ---- 記録（この端末の localStorage だけ）----
-const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, run: null, tut: false, kofi: {} });
+const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} });
+let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1) return Object.assign(fresh(), s); } catch (e) {} return fresh(); }
 function save(fn) { const s = load(); fn(s); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
@@ -202,7 +203,7 @@ function mapSvg(p, opt = {}) {
 // ---- ホーム ----
 function home() {
   const s = load(), k = todayKey(), done = s.days[k], hdone = s.hdays[k];
-  const run = s.run && s.run.date === k && s.run.mode !== "p" ? s.run : null;
+  const rd = s.runs.d, run = rd && rd.date === k ? rd : null;
   const nr = nextRank(s.cnt);
   let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : +d.slice(8, 10)}</span>`).join(""); }
   app.innerHTML = `
@@ -233,20 +234,22 @@ function practiceMenu() {
 function startRun(mode, size) {
   const k = todayKey();
   save((s) => {
-    if (s.run && s.run.date === k && s.run.mode === mode && mode !== "p") return;
+    const r = s.runs[mode];
+    if (r && r.date === k && mode !== "p") return;
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
-    s.run = { mode, date: k, tags, i: 0, hints: [], path: null };
+    s.runs[mode] = { mode, date: k, tags, i: 0, hints: [], path: null };
   });
+  MODE = mode;
   play();
 }
 
 // ---- 遊ぶ ----
-let P = null, path = [], hints = 0, won = false;
+let P = null, path = [], hints = 0, won = false, at = null; // at: 今の画面がどの回のどの路線か（古いタブの書き込みを止める）
 function play() {
-  const s = load(), run = s.run;
+  const s = load(), run = s.runs[MODE];
   if (!run) return home();
   if (run.i >= run.tags.length) return finish();
-  P = puzzle(run.tags[run.i]);
+  P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i };
   path = Array.isArray(run.path) && run.path[0] === P.s ? run.path.slice() : [P.s];
   hints = run.curHints || 0; won = false;
   const label = run.mode === "d" ? SIZES[run.i].name : run.mode === "h" ? "特急" : "練習";
@@ -268,7 +271,8 @@ function play() {
   draw();
   window.scrollTo(0, 0); // 前の路線の「開通」までスクロールしたままにしない
 }
-function keep() { save((s) => { if (s.run) { s.run.path = path.slice(); s.run.curHints = hints; } }); }
+const same = (r) => r && at && r.i === at.i && r.tags[r.i] === at.tag; // 保存した進み具合が、この画面と同じ路線か
+function keep() { save((s) => { const r = s.runs[MODE]; if (same(r)) { r.path = path.slice(); r.curHints = hints; } }); }
 function draw() {
   $("route").setAttribute("points", path.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   P.pts.forEach((_, i) => { const g = $("st" + i), on = path.includes(i); g.classList.toggle("on", on); g.querySelector("circle").setAttribute("fill", on ? "#1f2328" : "#fff"); });
@@ -314,27 +318,27 @@ function hint() {
   toast(k < path.length || k === 0 ? "次は光った駅" : "ここまでは合っています。次は光った駅");
 }
 function win() {
+  if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); }
   won = true; draw();
-  const s0 = load(), run = s0.run, st = starsOf(hints);
-  const s = save((s) => { if (!s.run) return; s.run.hints.push(hints); s.run.i++; s.run.path = null; s.run.curHints = 0; s.cnt++; if (hints === 0) s.clean++; });
+  const st = starsOf(hints);
+  const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; s.cnt++; if (hints === 0) s.clean++; });
   const svg = $("map").querySelector("svg"), pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   pl.setAttribute("id", "won"); pl.setAttribute("points", P.sol.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   const len = P.sol.length * SP * 1.2; pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len; pl.style.transition = "stroke-dashoffset 1.4s ease-in-out";
   svg.insertBefore(pl, $("route").nextSibling); requestAnimationFrame(() => requestAnimationFrame(() => (pl.style.strokeDashoffset = 0)));
-  const last = s.run && s.run.i >= s.run.tags.length;
+  const r = s.runs[MODE], last = r && r.i >= r.tags.length;
   $("after").innerHTML = `<div class="verdict" role="status"><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p><button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
   $("next").onclick = play;
   setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
-  void run;
 }
 function finish() {
-  const s = load(), run = s.run;
+  const s = load(), run = s.runs[MODE];
   if (!run) return home();
   let first = false;
   save((s2) => {
     if (run.mode === "d" && !s2.days[run.date]) { s2.days[run.date] = { h: run.hints }; first = true; }
     if (run.mode === "h" && !s2.hdays[run.date]) { s2.hdays[run.date] = { h: run.hints }; first = true; }
-    s2.run = null;
+    s2.runs[MODE] = null;
   });
   if (run.mode === "p") return practiceMenu();
   result(run.mode, run.date, first);
@@ -372,7 +376,7 @@ function result(mode, k, first) {
   $("share").onclick = () => { if (navigator.share) navigator.share({ text: withUrl }).catch(() => {}); else copy(withUrl); };
 }
 
-window.__rh = { play: () => play(), puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }) };
+window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }) };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
