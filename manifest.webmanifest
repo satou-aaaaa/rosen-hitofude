@@ -1,0 +1,17 @@
+{
+  "name": "路線図ひと筆",
+  "short_name": "ひと筆",
+  "description": "架空の路線図で、全部の駅を1回ずつ通って始発から終点まで走る1日3路線のパズル",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f1ea",
+  "theme_color": "#f3f1ea",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
