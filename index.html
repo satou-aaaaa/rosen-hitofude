@@ -172,8 +172,9 @@ const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 // ---- 記録（この端末の localStorage だけ）----
 const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} });
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1) return Object.assign(fresh(), s); } catch (e) {} return fresh(); }
-function save(fn) { const s = load(); fn(s); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} return s; }
+let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
+function load() { try { const j = localStorage.getItem(KEY); const s = JSON.parse(j === null && mem ? mem : j); if (s && s.v === 1) return Object.assign(fresh(), s); } catch (e) { if (mem) return Object.assign(fresh(), JSON.parse(mem)); } return fresh(); }
+function save(fn) { const s = load(); fn(s); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
 const starStr = (s) => `<span class="stars" aria-label="星${s}つ">${"★".repeat(s)}<span class="off">${"★".repeat(3 - s)}</span></span>`;
@@ -203,6 +204,8 @@ function mapSvg(p, opt = {}) {
 // ---- ホーム ----
 function home() {
   const s = load(), k = todayKey(), done = s.days[k], hdone = s.hdays[k];
+  // 最後の1問を終えて結果を見る前に閉じた日は、開き直したら結果へ進める（記録をつける）
+  for (const m of ["d", "h"]) { const r = s.runs[m]; if (r && r.date === k && r.i >= r.tags.length) { MODE = m; return finish(); } }
   const rd = s.runs.d, run = rd && rd.date === k ? rd : null;
   const nr = nextRank(s.cnt);
   let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : +d.slice(8, 10)}</span>`).join(""); }

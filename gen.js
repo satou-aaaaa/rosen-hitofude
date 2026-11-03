@@ -45,8 +45,9 @@
         let cand = nb[cur].filter((j) => !used[j] && (!isDiag(cur, j) || (!diagUsed.has(crossKey(cur, j)) && R() < 0.35)));
         if (!cand.length) { ok = false; break; }
         const deg = (j) => nb[j].filter((k) => !used[k]).length;
-        cand.sort((a, b) => deg(a) - deg(b) + (R() - 0.5) * 1.2);
-        const nx = cand[0]; used[nx] = 1; if (isDiag(cur, nx)) diagUsed.add(crossKey(cur, nx)); path.push(nx);
+        // 乱数は候補ごとに1回だけ引く（sort の比較で引くと、引く回数がブラウザで変わり、同じ日でも別の問題になる）
+        const nx = cand.map((j) => [deg(j) + (R() - 0.5) * 1.2, j]).reduce((m, c) => (c[0] < m[0] ? c : m))[1];
+        used[nx] = 1; if (isDiag(cur, nx)) diagUsed.add(crossKey(cur, nx)); path.push(nx);
       }
       if (!ok) continue;
       const key = (a, b) => (a < b ? a + "-" + b : b + "-" + a);
