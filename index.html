@@ -228,7 +228,7 @@ function home() {
   if (!s.tut) openHow();
 }
 function practiceMenu() {
-  app.innerHTML = `<header><button class="icon" id="back" aria-label="もどる">←</button><h1>練習<small>記録には残りません</small></h1><span></span></header>
+  app.innerHTML = `<header><button class="icon" id="back" aria-label="もどる">←</button><h1>練習<small>今日の記録・スタンプには入りません（開通の数には入ります）</small></h1><span></span></header>
     <div class="pick">${[...SIZES, HARD].map((z, i) => `<button class="sub" data-i="${i}" style="min-height:72px;flex-direction:column">${z.name}<small style="color:var(--ink2);font-weight:500">${z.W * z.H - z.holes}駅</small></button>`).join("")}</div>${footer()}`;
   $("back").onclick = home;
   document.querySelectorAll(".pick button").forEach((b) => (b.onclick = () => startRun("p", +b.dataset.i)));
