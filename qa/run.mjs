@@ -53,6 +53,7 @@ check("画面にお笑いの言葉を入れない（本物っぽく）", !/お�
   check("感想フォームは名前・メールを聞かない（楽しさ・よかった所・直してほしい所だけ）", /id: fun/.test(fy) && /id: good/.test(fy) && /id: fix/.test(fy) && !/id: (name|email|mail)/.test(fy) && /labels: \["感想"\]/.test(fy)); }
 { const sw = readFileSync(path.join(root, "sw.js"), "utf8"), mf = JSON.parse(readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
   const shell = JSON.parse(sw.match(/SHELL = (\[[^\]]+\])/)[1]);
+  check("PWA：ネットの返事の保存は、イベントの中で waitUntil に預ける（遅れて届いた新しい版も保存できる）", /e\.waitUntil\(net\.then/.test(sw) && !/\.then\([^\n]*e\.waitUntil/.test(sw));
   check("PWA：sw.js は画面のファイルを全部保存し、外へ何も送らない", ["./index.html", "./gen.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"].every((f) => shell.includes(f)) && !/https?:\/\//.test(sw.replace(/^\/\/.*$/gm, "")));
   check("PWA：manifest にアイコン2つと名前がある", mf.name === "路線図ひと筆" && mf.icons.length >= 2); }
 
@@ -178,12 +179,25 @@ try {
     await pb.click("#back");
     check("保存できないブラウザでも、遊び方が何度も開かない", !(await pb.locator("#howto[open]").count()));
     await pb.close(); }
+  { // 前の記録が残っていて、書き込みだけ失敗する（容量いっぱいなど）ときも、メモリの新しい進み具合を使う
+    const pq = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    pq.on("pageerror", (e) => errors.push(e.message));
+    await pq.addInitScript(() => { const orig = Storage.prototype.setItem; orig.call(localStorage, "rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, dex: {}, kofi: {}, runs: {} })); Storage.prototype.setItem = () => { throw new Error("full"); }; });
+    await pq.goto(url); await pq.click("#go-d");
+    check("前の記録があり書き込みだけ失敗しても、今日の1問目が始まる", (await pq.locator("#map svg").count()) === 1);
+    await pq.close(); }
   { // 最後の1問を終えて「結果を見る」を押す前に閉じた日は、開き直すと結果へ進み記録がつく
     const pc = await newPage();
     await pc.evaluate(() => { const g = window.__rh, k = g.todayKey(); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, dex: {}, cnt: 0, clean: 0, kofi: {}, runs: { d: { mode: "d", date: k, tags: g.dailyTags(k), i: 3, hints: [0, 0, 0], path: null } } })); });
     await pc.reload();
     check("最後の1問のあと閉じても、開き直すと結果へ進み今日の記録がつく", await pc.evaluate(() => { const g = window.__rh; return !!g.load().days[g.todayKey()] && !g.load().runs.d; }));
     await pc.close(); }
+  { // 0時の前に最後の1問を終えて閉じ、翌日に開いても、終えた日の記録として残る
+    const pn = await newPage();
+    await pn.evaluate(() => { const g = window.__rh, k = new Date(Date.parse(g.todayKey()) - 864e5).toISOString().slice(0, 10); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, dex: {}, cnt: 0, clean: 0, kofi: {}, runs: { d: { mode: "d", date: k, tags: g.dailyTags(k), i: 3, hints: [0, 0, 0], path: null } } })); });
+    await pn.reload();
+    check("前の日に終えて閉じても、翌日に開くとその日の記録がつく", await pn.evaluate(() => { const g = window.__rh; return !!g.load().days[new Date(Date.parse(g.todayKey()) - 864e5).toISOString().slice(0, 10)] && !g.load().runs.d; }));
+    await pn.close(); }
   { // 同じ日はどのブラウザでも同じ問題：sort の比較の中で乱数を引かない（引く回数がブラウザで変わる）
     const src = ["index.html", ...["gen.js", "data.js"].filter((f) => existsSync(path.join(root, f)))].map((f) => readFileSync(path.join(root, f), "utf8")).join("\n");
     const bad = src.match(/\.sort\(\s*\([^)]*\)\s*=>[^\n;]*\b(R|rng|rand|Math\.random)\s*\(/g) || [];
