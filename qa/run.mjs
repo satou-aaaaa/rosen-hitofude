@@ -276,6 +276,17 @@ try {
     await pl.click("#go-cal");
     check("乗車記録：あとから遊んだ日は別の印（点線）で残り、もう押せない", (await pl.locator(".cal .c.late").count()) === 1 && (await pl.locator(`.misses button[data-d="${target}"]`).count()) === 0);
     check("乗車記録の画面でも、あとから遊んだ日で連続の日は増えない（連続2日のまま）", (await pl.textContent("#app")).includes("連続2日") && !(await pl.textContent("#app")).includes("連続3日"));
+    { // A日を途中まで→B日を始める→A日に戻ると続きから（runs.a を黙って消さない。2026-11-04 星座つなぎで CodeRabbit が指摘）
+      const A = add(-4), B = add(-5);
+      await pl.evaluate((d) => window.__rh.startRun("a", null, d), A);
+      const sa = await sol(pl); await pl.evaluate((i) => window.__rh.tryStep(i), sa[1]); await pl.evaluate((i) => window.__rh.tryStep(i), sa[2]);
+      await pl.evaluate((d) => window.__rh.startRun("a", null, d), B);
+      const onB = await pl.evaluate(() => window.__rh.load().runs.a.date);
+      await pl.evaluate((d) => window.__rh.startRun("a", null, d), A);
+      const backA = await pl.evaluate(() => { const g = window.__rh, s = g.load(); return { date: s.runs.a.date, path: g.state().path.length, parked: Object.keys(s.apark || {}) }; });
+      check("あとから：A日を途中まで→B日を始める→A日に戻ると、通った駅のまま続きから（B日は預けて残る）", onB === B && backA.date === A && backA.path === 3 && backA.parked.includes(B), JSON.stringify({ onB, backA }));
+      await pl.evaluate(() => window.__rh.startRun("a", null, window.__rh.load().runs.a.date)); await pl.click("#back");
+    }
     const before = await pl.evaluate(() => JSON.stringify(window.__rh.load().runs.a || null));
     await pl.evaluate((d) => window.__rh.startRun("a", null, d), add(-8));
     check("8日より前の日・遊んだ日は、あとから始められない", (await pl.evaluate(() => JSON.stringify(window.__rh.load().runs.a || null))) === before && (await pl.evaluate((d) => { window.__rh.startRun("a", null, d); return JSON.stringify(window.__rh.load().runs.a || null); }, add(-1)) === before));
@@ -325,6 +336,10 @@ try {
     check("結果を見る前に別のタブが次の日を保存しても、終えた日の記録を残す", await pn.evaluate((K) => { const g = window.__rh, s0 = g.load(); const base = { mode: "d", date: "2000-01-01", list: [1, 2, 3], tags: [1, 2, 3], id: "x", res: [], i: 0, hints: [0, 0, 0] }, done = Object.assign({}, base, { res: [0, 1, 2].map(() => ({ m: 0, g: 1, h: 0, f: 0, p: 90, n: 1 })), i: 3 }); mem = JSON.stringify(Object.assign({}, s0, { t: 5, runs: { d: done } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, runs: { d: Object.assign({}, base, { date: "2000-01-02" }) } }))); const r = g.load(); mem = null; return !!r.days["2000-01-01"] && r.runs.d.date === "2000-01-02"; }, "rosen-v1"));
     check("同じ問題の練習をやり直したら、前の回（終えたもの）と取り違えず新しい回を使う", await pn.evaluate((K) => { const g = window.__rh, s0 = g.load(), base = { mode: "p", date: "2000-01-01", list: [1], tags: [1], res: [], i: 0, hints: [] }; mem = JSON.stringify(Object.assign({}, s0, { t: 9, runs: { p: Object.assign({}, base, { id: "new" }) } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 5, runs: { p: Object.assign({}, base, { id: "old", res: [{}], i: 1 }) } }))); const r = g.load(); mem = null; return r.runs.p.id === "new"; }, "rosen-v1"));
     check("保存に失敗したあと別のタブが保存しても、帳の★は高いほうを残す", await pn.evaluate((K) => { const g = window.__rh, s0 = g.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 5, dex: { zz: 3 } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, dex: { zz: 1 } }))); const r = g.load(); mem = null; return r.dex.zz === 3; }, "rosen-v1"));
+    check("保存に失敗したあと、どちらの側が古い形（late・ach・apark が無い）でも、新しい入れ物を失わない（2026-11-04 星座つなぎで CodeRabbit が指摘）", await pn.evaluate((K) => { const g = window.__rh, s0 = g.load(), old = { v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, kofi: {} }, neu = Object.assign({}, old, { late: { "2000-01-03": { h: [0, 0, 0] } }, ach: { first: 1 }, apark: { "2000-01-04": { mode: "a", date: "2000-01-04", tags: [1, 2, 3], i: 0, hints: [], path: null } } });
+      const put = (m, l) => { mem = JSON.stringify(m); localStorage.setItem(K, JSON.stringify(l)); const r = g.load(); mem = null; return !!r.late["2000-01-03"] && r.ach && r.ach.first === 1 && !!(r.apark || {})["2000-01-04"]; };
+      const ok = put(Object.assign({}, old, { t: 9 }), Object.assign({}, neu, { t: 5 })) && put(Object.assign({}, neu, { t: 5 }), Object.assign({}, old, { t: 9 })) && put(Object.assign({}, neu, { t: 9 }), Object.assign({}, old, { t: 5 })) && put(Object.assign({}, old, { t: 5 }), Object.assign({}, neu, { t: 9 }));
+      localStorage.setItem(K, JSON.stringify(s0)); return ok; }, "rosen-v1"));
     check("時計が戻っても、保存の時刻 t は前より大きくなる", await pn.evaluate((K) => { const s0 = JSON.parse(localStorage.getItem(K)); const far = Date.now() + 1e9; localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: far }))); save(() => {}); return JSON.parse(localStorage.getItem(K)).t > far; }, "rosen-v1"));
     await pn.close(); }
   { // 同じ日はどのブラウザでも同じ問題：sort の比較の中で乱数を引かない（引く回数がブラウザで変わる）

@@ -216,14 +216,14 @@ function puzzle(tag) { // tag: "d:<日付>:<0-2>" / "h:<日付>" / "p:<大きさ
 const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 
 // ---- 記録（この端末の localStorage だけ）----
-const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} }); // late: あとから遊んだ日（連続・今日の記録には入れない）
+const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, apark: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} }); // late: あとから遊んだ日（連続・今日の記録には入れない）。apark: あとから遊ぶ日の途中経過を日付ごとに預ける
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
 const doneOf = (r) => !!r && r.i >= r.tags.length, recOf = (r) => ({ h: r.hints });
 // 終わった今日・上級の回を日ごとの記録に入れる（結果を見る前に別のタブが次の日を保存しても、終えた日を失わない）
 const bookOf = (s, m) => (m === "d" ? s.days : m === "h" ? s.hdays : m === "a" ? (s.late = s.late || {}) : null);
 function bank(s, r) { const b = doneOf(r) ? bookOf(s, r.mode) : null; if (!b || b[r.date] || (r.mode === "a" && s.days[r.date])) return false; b[r.date] = recOf(r); return true; }
-function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 10 + (r.curHints || 0) : 0), idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = bookOf(s, r.mode); if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = x.date > y.date ? [x, y] : [y, x]; bank(s, l); s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } return s; } // 保存に失敗したあとはメモリと保存の両方を読み、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
+function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); a = Object.assign(fresh(), a); b = Object.assign(fresh(), b); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; else if (y === undefined && x && typeof x === "object") s[k] = x; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 10 + (r.curHints || 0) : 0), idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = bookOf(s, r.mode); if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = x.date > y.date ? [x, y] : [y, x]; bank(s, l); s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } return s; } // 保存に失敗したあとはメモリと保存の両方を読み（古い形の側にも late などの入れ物を補ってから）、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
@@ -324,7 +324,14 @@ function startRun(mode, size, date) {
   if (mode === "a" && !missedDays(load(), k).includes(date)) return calView(); // あとから遊べるのは、遊んでいない過去7日だけ
   save((s) => {
     const r = s.runs[mode];
-    if (mode === "a") { if (r && r.date === date) return; s.runs.a = { mode, date, tags: dailyTags(date), i: 0, hints: [], path: null }; return; } // その日の3路線と同じ問題（日付の種）。途中経過は runs.a に分けて置く
+    if (mode === "a") { // 別の日の途中経過は消さずに apark へ日付ごとに預け、戻ってきたら続きから
+      if (r && r.date === date) return;
+      const park = (s.apark = s.apark || {}), ok = missedDays(s, k);
+      if (r && !doneOf(r)) park[r.date] = r;
+      const back = park[date]; delete park[date];
+      for (const d of Object.keys(park)) if (!ok.includes(d)) delete park[d]; // 7日を過ぎた日・遊び終えた日の預かりは捨てる
+      s.runs.a = back && !doneOf(back) && back.date === date ? back : { mode, date, tags: dailyTags(date), i: 0, hints: [], path: null }; return;
+    } // その日の3路線と同じ問題（日付の種）。途中経過は runs.a に分けて置く
     if (r && r.date === k && mode !== "p") return;
     if ((mode === "d" && s.days[k]) || (mode === "h" && s.hdays[k])) return; // 別のタブで今日の分を終えていたら、もう一度は始めない（ホームに戻る）
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
@@ -497,7 +504,7 @@ function calView(ym) {
     const key = `${ym}-${String(d).padStart(2, "0")}`, rec = s.days[key], lr = late[key], ex = (s.hdays[key] ? " hd" : "") + (key === k ? " today" : "");
     if (rec) { inMonth++; const n = dayStars(rec); cells += `<div class="c d${n >= 9 ? 3 : n >= 7 ? 2 : 1}${ex}" title="${md(key)} ★${n}">${d}<i>★${n}</i></div>`; }
     else if (lr) { inMonth++; cells += `<div class="c late${ex}" title="${md(key)} あとから ★${dayStars(lr)}">${d}<i>↺★${dayStars(lr)}</i></div>`; }
-    else if (miss.includes(key)) cells += `<button class="c" data-d="${key}" aria-label="${md(key)}の3路線をあとから">${d}<i>${ra && ra.date === key ? "続き" : "↺乗る"}</i></button>`;
+    else if (miss.includes(key)) cells += `<button class="c" data-d="${key}" aria-label="${md(key)}の3路線をあとから">${d}<i>${(ra && ra.date === key) || (s.apark || {})[key] ? "続き" : "↺乗る"}</i></button>`;
     else cells += `<div class="c${key > k || key < EPOCH ? " out" : ""}${ex}">${d}</div>`;
   }
   app.innerHTML = `<header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>乗車記録<small>${inMonth ? `この月 ${inMonth}日` : ""}</small></h1><span></span></header>
@@ -505,7 +512,7 @@ function calView(ym) {
     <div class="cal">${cells}</div>
     <div class="legend"><span><em style="background:var(--accent)"></em>その日に乗った（濃いほど★）</span><span><em style="border:1.5px dashed var(--accent)"></em>あとから</span><span><em style="background:var(--gold);border-radius:50%;width:9px;height:9px"></em>特急</span></div>
     ${st >= 1 ? `<p class="note">いま 連続${st}日</p>` : ""}
-    ${miss.length ? `<p class="note">取りこぼした日は、7日前まであとから乗れます（同じ3路線・連続の日には入りません）</p><div class="misses">${miss.map((d) => `<button class="sub" data-d="${d}">${md(d)}<small>#${dayNo(d)}${ra && ra.date === d ? "・続き" : ""}</small></button>`).join("")}</div>` : ""}
+    ${miss.length ? `<p class="note">取りこぼした日は、7日前まであとから乗れます（同じ3路線・連続の日には入りません）</p><div class="misses">${miss.map((d) => `<button class="sub" data-d="${d}">${md(d)}<small>#${dayNo(d)}${(ra && ra.date === d) || (s.apark || {})[d] ? "・続き" : ""}</small></button>`).join("")}</div>` : ""}
     ${footer()}`;
   $("back").onclick = home;
   if (ym > min) $("cal-prev").onclick = () => calView(shift(-1));
