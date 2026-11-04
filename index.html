@@ -224,7 +224,7 @@ function home() {
     <p class="rank">${rankOf(s.cnt)}${nr ? `（あと${nr[0] - s.cnt}路線で${nr[1]}）` : ""}</p>
     <div><p class="note" style="text-align:left;margin-bottom:6px">乗車スタンプ（2週間）</p><div class="stamps">${stamps}</div></div>
     ${footer()}`;
-  $("go-d").onclick = () => (done ? result("d", k) : startRun("d"));
+  $("go-d").onclick = () => (k !== todayKey() ? home() : done ? result("d", k) : startRun("d")); // 画面を開いたまま0時を過ぎたら、今日の状態に描き直す
   if ($("go-h")) $("go-h").onclick = () => (hdone ? result("h", k) : k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   $("go-p").onclick = practiceMenu;
   bindFooter();
@@ -343,7 +343,8 @@ function finish() {
   let first = false;
   save((s2) => {
     first = bank(s2, run);
-    s2.runs[MODE] = null;
+    // 別のタブで同じモードの新しい回が始まっていたら、それは消さない
+    const c = s2.runs[MODE]; if (c && c.date === run.date && c.id === run.id) s2.runs[MODE] = null;
   });
   if (run.mode === "p") return practiceMenu();
   result(run.mode, run.date, first);
