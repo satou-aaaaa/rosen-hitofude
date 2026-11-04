@@ -173,8 +173,8 @@ const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} });
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
-function load() { try { const s = JSON.parse(mem !== null ? mem : localStorage.getItem(KEY)); if (s && s.v === 1) return Object.assign(fresh(), s); } catch (e) { if (mem) return Object.assign(fresh(), JSON.parse(mem)); } return fresh(); } // 保存に失敗したあとは、古い記録よりメモリの方が新しい
-function save(fn) { const s = load(); fn(s); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
+function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} const s = a && (!b || (a.t || 0) >= (b.t || 0)) ? a : b; return s && s.v === 1 ? Object.assign(fresh(), s) : fresh(); } // 保存に失敗したあとはメモリの方を使う。ただし別のタブがあとで保存できていたら、そちら（t が新しい方）を使う
+function save(fn) { const s = load(); fn(s); s.t = Date.now(); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
 const starStr = (s) => `<span class="stars" aria-label="星${s}つ">${"★".repeat(s)}<span class="off">${"★".repeat(3 - s)}</span></span>`;
@@ -364,7 +364,7 @@ function result(mode, k, first) {
     <button class="main" id="share">結果をシェア</button>
     <div class="shares"><a id="toX" target="_blank" rel="noopener">Xで投稿</a><a id="toLine" target="_blank" rel="noopener">LINEで送る</a><button id="copy">コピー</button></div>
     <p class="note">次の路線まで あと <b>${untilNext()}</b></p>
-    ${mode === "d" && !s.hdays[k] ? `<button class="main alt" id="go-h">上級：特急に乗る</button>` : ""}
+    ${mode === "d" && k === todayKey() && !s.hdays[k] ? `<button class="main alt" id="go-h">上級：特急に乗る</button>` : ""}
     <div class="row"><button class="sub" id="go-p">練習する</button></div>
     ${showKofi ? `<p class="note kofi">楽しめたら、<a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi でコーヒー1杯の応援</a>をもらえると、新しい路線とゲームづくりの励みになります（任意・遊ぶのはずっと無料）。</p>` : ""}
     <p class="note"><a href="${FEEDBACK}" target="_blank" rel="noopener" id="fb">感想を送る</a></p>`;
