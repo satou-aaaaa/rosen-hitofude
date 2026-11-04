@@ -285,8 +285,8 @@ function mapSvg(p, opt = {}) {
 function home() {
   const s = load(), k = todayKey(), done = s.days[k], hdone = s.hdays[k];
   // 最後の1問を終えて結果を見る前に閉じた日は、開き直したら結果へ進める（記録をつける）
+  if (!s.ach) save((s2) => { if (!s2.ach) { s2.ach = {}; achGot(s2).forEach((id) => (s2.ach[id] = 1)); } }); // 実績の前から遊んでいた人は、もう取れている分をまとめて出さない（結果へ進む前に印をつける）
   for (const m of ["d", "h", "a"]) { const r = s.runs[m]; if (r && r.i >= r.tags.length) { MODE = m; return finish(); } }
-  if (!s.ach) save((s2) => { if (!s2.ach) { s2.ach = {}; achGot(s2).forEach((id) => (s2.ach[id] = 1)); } }); // 実績の前から遊んでいた人は、もう取れている分をまとめて出さない
   const rd = s.runs.d, run = rd && rd.date === k ? rd : null;
   const nr = nextRank(s.cnt), st = streak(s.days), miss = missedDays(s, k);
   let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : (s.late || {})[d] ? "got late" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : (s.late || {})[d] ? "↺" : +d.slice(8, 10)}</span>`).join(""); }
@@ -372,6 +372,12 @@ function play() {
 }
 const same = (r) => r && at && r.i === at.i && r.tags[r.i] === at.tag; // 保存した進み具合が、この画面と同じ路線か
 function keep() { save((s) => { const r = s.runs[MODE]; if (same(r)) { r.path = path.slice(); r.curHints = hints; } }); }
+// いまの駅から、まだ通っていない駅だけを通って行けない駅（一つずつ囲まれた駅も、遠くで切り離された駅のかたまりも）
+function lostOf(P, path) {
+  const vis = new Set(path), cur = path[path.length - 1], seen = new Set([cur]), q = [cur];
+  while (q.length) { const x = q.pop(); for (const w of P.adj[x]) if (!vis.has(w) && !seen.has(w)) { seen.add(w); q.push(w); } }
+  return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !seen.has(v));
+}
 function draw() {
   $("route").setAttribute("points", path.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   P.pts.forEach((_, i) => { const g = $("st" + i), on = path.includes(i); g.classList.toggle("on", on); g.querySelector("circle").setAttribute("fill", on ? "#1f2328" : "#fff"); });
@@ -382,8 +388,7 @@ function draw() {
   $("pnum").textContent = `${path.length} / ${P.pts.length}`; $("pbar").style.width = (path.length / P.pts.length * 100) + "%";
   $("undo").disabled = $("reset").disabled = path.length <= 1 || won;
   // 行き止まり・たどり着けなくなった駅を知らせる（答えは言わず、いまの道の結果だけ）
-  const vis = new Set(path), lost = [];
-  if (!won) P.pts.forEach((_, v) => { if (vis.has(v)) return; let d = 0; for (const w of P.adj[v]) if (!vis.has(w) || w === cur) d++; if (d === 0) lost.push(v); });
+  const vis = new Set(path), lost = won ? [] : lostOf(P, path);
   P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
   const stuck = !won && path.length < P.pts.length && !P.adj[cur].some((j) => !vis.has(j) && (j !== P.e || path.length === P.pts.length - 1));
   const w = $("warn"); w.textContent = stuck ? "行き止まり。通った駅を押すと、そこまで戻れます" : lost.length ? "もう行けない駅ができました（赤い点線）" : ""; w.hidden = !w.textContent;
@@ -521,7 +526,7 @@ function calView(ym) {
   bindFooter(); window.scrollTo(0, 0);
 }
 
-window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, calView, achView, startRun, streak, playedDays };
+window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>

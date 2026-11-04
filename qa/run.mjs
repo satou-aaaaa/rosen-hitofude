@@ -122,7 +122,8 @@ try {
       const walk = [P.s]; while (true) { const c = walk[walk.length - 1], n = P.adj[c].filter((j) => !walk.includes(j) && j !== P.e); if (!n.length) break; const w = n.find((j) => j !== P.sol[walk.length]) ?? n[0]; walk.push(w); }
       g.tryStep(P.s); for (const i of walk.slice(1)) g.tryStep(i);
       const vis = new Set(walk), cur = walk[walk.length - 1], warn = document.getElementById("warn");
-      const lostOk = [...document.querySelectorAll(".st.lost")].every((e) => { const v = +e.id.slice(2); return !vis.has(v) && P.adj[v].every((w) => vis.has(w) && w !== cur); });
+      const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const want = lostX(P, walk);
+      const lostOk = JSON.stringify([...document.querySelectorAll(".st.lost")].map((e) => +e.id.slice(2)).sort((a, b) => a - b)) === JSON.stringify(want);
       const out = { len: walk.length, n: P.pts.length, shown: !warn.hidden, text: warn.textContent, lostOk, lost: document.querySelectorAll(".st.lost").length };
       g.tryStep(P.s); for (const i of back.slice(1)) g.tryStep(i);
       out.after = warn.hidden && !document.querySelector(".st.lost"); return out; });
@@ -135,12 +136,18 @@ try {
         for (let k = 0; k < 40; k++) { const c = walk[walk.length - 1], n = P0.adj[c].filter((j) => !walk.includes(j) && (j !== P0.e || walk.length === P0.pts.length - 1)); if (!n.length) break; const w = n[Math.floor(R() * n.length)]; walk.push(w); g.tryStep(w); if (walk.length === P0.pts.length) break; }
         if (g.state().won) continue;
         const vis = new Set(walk), cur = walk[walk.length - 1], stuck = !P0.adj[cur].some((j) => !vis.has(j) && (j !== P0.e || walk.length === P0.pts.length - 1));
-        const lost = P0.pts.map((_, v) => v).filter((v) => !vis.has(v) && P0.adj[v].every((w) => vis.has(w) && w !== cur));
+        const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const lost = lostX(P0, walk);
         const shown = [...document.querySelectorAll(".st.lost")].map((e) => +e.id.slice(2)).sort((a, b) => a - b);
         if (JSON.stringify(shown) !== JSON.stringify(lost) || (stuck && document.getElementById("warn").hidden)) bad++;
         if (stuck) stuckN++; if (!document.getElementById("warn").hidden) warned++; }
       g.tryStep(P0.s); for (const i of back.slice(1)) g.tryStep(i); return { bad, warned, stuckN }; });
     check("300通りのまちがった道で、赤い点線はもう行けない駅とぴったり同じ・行き止まりは必ず知らせる", r.bad === 0 && r.stuckN > 0, JSON.stringify(r));
+  }
+  { // 遠くで切り離された駅のかたまりも全部赤くする（2026-11-04 CodeRabbit：2026-11-04 の1路線目で 17→16→15→12→8→4→1→0 と進むと11駅が行けなくなるのに、1駅しか赤くならなかった）
+    const r = await page.evaluate(() => { const g = window.__rh, P = g.puzzle("d:2026-11-04:0"), walk = [17, 16, 15, 12, 8, 4, 1, 0];
+      const okWalk = walk[0] === P.s && walk.every((v, i) => i === 0 || P.adj[walk[i - 1]].includes(v));
+      return { okWalk, lost: g.lostOf(P, walk) }; });
+    check("切り離された駅のかたまりも、もう行けない駅として全部知らせる", r.okWalk && JSON.stringify(r.lost) === "[2,3,5,6,7,9,10,11,13,14,18]", JSON.stringify(r));
   }
   for (const i of s1.slice(3)) await tapStation(page, i);
   check("全部の駅を通って終点に着くと開通・ヒント1回で★2", (await page.textContent(".verdict")).includes("開通") && (await page.locator(".verdict .stars").textContent()).replace(/[^★]/g, "").length === 3 && (await page.locator(".verdict .stars .off").textContent()).length === 1);
@@ -227,6 +234,14 @@ try {
     await pa.evaluate(() => { const k = window.__rh.todayKey(); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: { [k]: { h: [0, 0, 0] } }, hdays: {}, cnt: 50, clean: 31, runs: {}, kofi: {} })); });
     await pa.reload();
     check("実績より前から遊んでいた人は、もう取れている実績を「見せた」にしてまとめて出さない", await pa.evaluate(() => { const s = window.__rh.load(); return !!s.ach && s.ach.first === 1 && s.ach.clean30 === 1 && s.ach.perfect === 1; }));
+    { // 3路線目を開通して結果を見ずに閉じた、実績より前からの人：開き直して結果へ進んでも、前に取れていた実績をまとめて出さない（2026-11-04 CodeRabbit）
+      const keepRec = await pa.evaluate(() => localStorage.getItem("rosen-v1"));
+      await pa.evaluate(() => { const g = window.__rh, k = g.todayKey(), y = new Date(Date.parse(k + "T00:00:00Z") - 864e5).toISOString().slice(0, 10); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: { [y]: { h: [0, 0, 0] } }, hdays: {}, cnt: 40, clean: 31, runs: { d: { mode: "d", date: k, tags: g.dailyTags(k), i: 3, hints: [0, 0, 0], path: null } }, kofi: {} })); });
+      await pa.reload();
+      const r = await pa.evaluate(() => ({ head: document.querySelector("header")?.textContent || "", ach: document.querySelector(".achnew")?.textContent || "" }));
+      check("結果を見ずに閉じた日を開き直しても、前から取れていた実績（はじめての開通など）を新しく出さない", !r.ach.includes("はじめての開通"), JSON.stringify(r));
+      await pa.evaluate((v) => localStorage.setItem("rosen-v1", v), keepRec); await pa.reload();
+    }
     check("ホームの実績ボタンに取った数（3/12 のように）", /🏅 実績 \d+\/\d+/.test(await pa.textContent("#go-ach")));
     await pa.click("#go-ach");
     const v = await pa.evaluate(() => ({ items: document.querySelectorAll(".ach").length, got: document.querySelectorAll(".ach.got").length, pg: [...document.querySelectorAll(".ach:not(.got)")].every((e) => /\d+\/\d+/.test(e.querySelector(".pg")?.textContent || "") && e.querySelector("small").textContent.length > 0), over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent.trim() || e.id) }));
