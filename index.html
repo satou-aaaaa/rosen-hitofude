@@ -46,7 +46,7 @@ button.sub{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-ite
 button.sub:disabled{opacity:.4;cursor:default}
 .row{display:flex;gap:10px}.row>.sub,.row>.main{flex:1 1 0}
 .note{color:var(--ink2);font-size:13px;line-height:1.6;margin:0;text-align:center}
-.note a{color:var(--accent)}
+.note a{color:var(--accent);display:inline-flex;align-items:center;min-height:44px}
 /* 駅名標（看板） */
 .sign{background:var(--card);border-radius:10px;box-shadow:0 2px 0 #0000001a;overflow:hidden;text-align:center}
 .sign .nm{font-size:30px;font-weight:800;letter-spacing:.18em;padding:14px 8px 4px}
@@ -101,7 +101,7 @@ dialog::backdrop{background:#000000aa}
 dialog h2{margin:0 0 10px}
 dialog ol{padding-left:1.3em;margin:0 0 12px;line-height:1.8}
 dialog p{margin:0 0 10px;font-size:14px;line-height:1.7;color:var(--ink2)}
-dialog a{color:var(--accent)}
+dialog a{color:var(--accent);min-height:44px;display:inline-flex;align-items:center}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;z-index:9;box-shadow:0 6px 20px #0005}
 .hint{background:#fff8e6;border:1px solid var(--gold);border-radius:12px;padding:10px 12px;font-size:14px;text-align:center}
 footer{margin-top:auto;text-align:center;font-size:12px;color:var(--ink2);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -173,7 +173,10 @@ const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} });
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
-function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 2 + (r.cur || r.path ? 1 : 0), idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (!x || !y) continue; if (x.date !== y.date) s.runs[m] = x.date > y.date ? x : y; else if (idOf(x) === idOf(y)) s.runs[m] = prog(x) > prog(y) ? x : y; } return s; } // 保存に失敗したあとはメモリと保存の両方を読み、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
+const doneOf = (r) => !!r && r.i >= r.tags.length, recOf = (r) => ({ h: r.hints });
+// 終わった今日・上級の回を日ごとの記録に入れる（結果を見る前に別のタブが次の日を保存しても、終えた日を失わない）
+function bank(s, r) { const b = doneOf(r) ? (r.mode === "d" ? s.days : r.mode === "h" ? s.hdays : null) : null; if (!b || b[r.date]) return false; b[r.date] = recOf(r); return true; }
+function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 2 + (r.cur || r.path ? 1 : 0), idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) continue; if (x.date !== y.date) { const [w, l] = x.date > y.date ? [x, y] : [y, x]; bank(s, l); s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } return s; } // 保存に失敗したあとはメモリと保存の両方を読み、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
@@ -222,7 +225,7 @@ function home() {
     <div><p class="note" style="text-align:left;margin-bottom:6px">乗車スタンプ（2週間）</p><div class="stamps">${stamps}</div></div>
     ${footer()}`;
   $("go-d").onclick = () => (done ? result("d", k) : startRun("d"));
-  if ($("go-h")) $("go-h").onclick = () => (hdone ? result("h", k) : startRun("h"));
+  if ($("go-h")) $("go-h").onclick = () => (hdone ? result("h", k) : k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   $("go-p").onclick = practiceMenu;
   bindFooter();
   if (!s.tut) openHow();
@@ -240,7 +243,7 @@ function startRun(mode, size) {
     const r = s.runs[mode];
     if (r && r.date === k && mode !== "p") return;
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
-    s.runs[mode] = { mode, date: k, tags, i: 0, hints: [], path: null };
+    s.runs[mode] = { mode, date: k, tags, i: 0, hints: [], path: null, ...(mode === "p" ? { id: Date.now().toString(36) + "-" + performance.now().toFixed(3) } : {}) }; // 練習は始めるたびに見分ける（同じ路線をやり直しても、古い回と取り違えない）
   });
   MODE = mode;
   play();
@@ -339,8 +342,7 @@ function finish() {
   if (!run) return home();
   let first = false;
   save((s2) => {
-    if (run.mode === "d" && !s2.days[run.date]) { s2.days[run.date] = { h: run.hints }; first = true; }
-    if (run.mode === "h" && !s2.hdays[run.date]) { s2.hdays[run.date] = { h: run.hints }; first = true; }
+    first = bank(s2, run);
     s2.runs[MODE] = null;
   });
   if (run.mode === "p") return practiceMenu();
