@@ -53,7 +53,7 @@ check("画面にお笑いの言葉を入れない（本物っぽく）", !/お�
   check("感想フォームは名前・メールを聞かない（楽しさ・よかった所・直してほしい所だけ）", /id: fun/.test(fy) && /id: good/.test(fy) && /id: fix/.test(fy) && !/id: (name|email|mail)/.test(fy) && /labels: \["感想"\]/.test(fy)); }
 { const sw = readFileSync(path.join(root, "sw.js"), "utf8"), mf = JSON.parse(readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
   const shell = JSON.parse(sw.match(/SHELL = (\[[^\]]+\])/)[1]);
-  check("PWA：ネットの返事の保存は、イベントの中で waitUntil に預ける（遅れて届いた新しい版も保存できる）", /e\.waitUntil\(net\.then[^\n]*\.catch\(\(\) => \{\}\)\);/.test(sw) && !/\.then\([^\n]*e\.waitUntil/.test(sw));
+  check("PWA：ネットの返事の保存は、イベントの中で waitUntil に預ける（遅れて届いた新しい版も保存できる）", /e\.waitUntil\(Promise\.race\(\[net\.then[^\n]*\.catch\(\(\) => \{\}\), new Promise\(\(r\) => setTimeout\(r, \d+\)\)\]\)\);/.test(sw) && !/\.then\([^\n]*e\.waitUntil/.test(sw));
   check("PWA：sw.js は画面のファイルを全部保存し、外へ何も送らない", ["./index.html", "./gen.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"].every((f) => shell.includes(f)) && !/https?:\/\//.test(sw.replace(/^\/\/.*$/gm, "")));
   check("PWA：manifest にアイコン2つと名前がある", mf.name === "路線図ひと筆" && mf.icons.length >= 2); }
 
@@ -193,6 +193,15 @@ try {
     check("最後の1問のあと閉じても、開き直すと結果へ進み今日の記録がつく", await pc.evaluate(() => { const g = window.__rh; return !!g.load().days[g.todayKey()] && !g.load().runs.d; }));
     await pc.close(); }
   { // 0時の前に最後の1問を終えて閉じ、翌日に開いても、終えた日の記録として残る
+    { // 今日の結果を開いたまま0時を過ぎてから「上級」を押しても、翌日の上級は始めない
+    const pm = await newPage();
+    await pm.evaluate(() => { const g = window.__rh, k = new Date(Date.parse(g.todayKey())).toISOString().slice(0, 10); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, dex: {}, cnt: 0, clean: 0, kofi: {}, runs: { d: { mode: "d", date: k, tags: g.dailyTags(k), i: 3, hints: [0, 0, 0], path: null } } })); });
+    await pm.reload();
+    const had = await pm.locator("#go-h").count();
+    await pm.evaluate(() => { const RD = Date, off = 864e5; window.Date = class extends RD { constructor(...a) { if (a.length) super(...a); else super(RD.now() + off); } static now() { return RD.now() + off; } }; }); // 時計を1日進める
+    if (had) await pm.click("#go-h");
+    check("結果を開いたまま日付が変わったら、上級のボタンを押しても翌日の上級は始まらない", had > 0 && (await pm.evaluate(() => window.__rh.mode())) !== "h");
+    await pm.close(); }
     const pn = await newPage();
     await pn.evaluate(() => { const g = window.__rh, k = new Date(Date.parse(g.todayKey()) - 864e5).toISOString().slice(0, 10); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, dex: {}, cnt: 0, clean: 0, kofi: {}, runs: { d: { mode: "d", date: k, tags: g.dailyTags(k), i: 3, hints: [0, 0, 0], path: null } } })); });
     await pn.reload();

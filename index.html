@@ -370,7 +370,7 @@ function result(mode, k, first) {
     <p class="note"><a href="${FEEDBACK}" target="_blank" rel="noopener" id="fb">感想を送る</a></p>`;
   $("back").onclick = home;
   $("go-p").onclick = practiceMenu;
-  if ($("go-h")) $("go-h").onclick = () => startRun("h");
+  if ($("go-h")) $("go-h").onclick = () => (k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   const withUrl = text + "\n" + SITE;
   $("toX").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(withUrl);
   $("toLine").href = "https://line.me/R/share?text=" + encodeURIComponent(withUrl);
