@@ -38,7 +38,6 @@ header{display:flex;justify-content:space-between;align-items:center;gap:8px;min
 h1{font-size:20px;margin:0;font-weight:800}
 h1 small{font-size:12px;color:var(--ink2);margin-left:8px;font-weight:500}
 .icon{all:unset;cursor:pointer;font-size:18px;min-width:44px;height:44px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--line);background:var(--card);box-sizing:border-box;padding:0 8px}
-button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 button.main,a.main{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:17px;padding:0 16px;text-align:center;box-shadow:0 4px 0 #05523a}
 button.main:active{transform:translateY(2px);box-shadow:0 2px 0 #05523a}
 button.main.alt{background:var(--ink);box-shadow:0 4px 0 #000}
@@ -153,6 +152,8 @@ footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:cente
 @media (max-width:360px){.row>.sub{font-size:14px;padding:0 6px}}
 .misses small{font-size:11px;color:var(--ink2);font-weight:500}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* all:unset のボタン（カレンダーのます目など）でも枠が消えないよう、いちばん最後に強く書く（2026-11-04 CodeRabbit） */
+:is(button,a):focus-visible{outline:3px solid var(--gold)!important;outline-offset:2px}
 </style>
 </head>
 <body>
