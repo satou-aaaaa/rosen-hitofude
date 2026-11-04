@@ -242,6 +242,7 @@ function startRun(mode, size) {
   save((s) => {
     const r = s.runs[mode];
     if (r && r.date === k && mode !== "p") return;
+    if ((mode === "d" && s.days[k]) || (mode === "h" && s.hdays[k])) return; // 別のタブで今日の分を終えていたら、もう一度は始めない（ホームに戻る）
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
     s.runs[mode] = { mode, date: k, tags, i: 0, hints: [], path: null, ...(mode === "p" ? { id: Date.now().toString(36) + "-" + performance.now().toFixed(3) } : {}) }; // 練習は始めるたびに見分ける（同じ路線をやり直しても、古い回と取り違えない）
   });
