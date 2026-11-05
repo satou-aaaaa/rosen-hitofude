@@ -38,7 +38,6 @@ header{display:flex;justify-content:space-between;align-items:center;gap:8px;min
 h1{font-size:20px;margin:0;font-weight:800}
 h1 small{font-size:12px;color:var(--ink2);margin-left:8px;font-weight:500}
 .icon{all:unset;cursor:pointer;font-size:18px;min-width:44px;height:44px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--line);background:var(--card);box-sizing:border-box;padding:0 8px}
-button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 button.main,a.main{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:17px;padding:0 16px;text-align:center;box-shadow:0 4px 0 #05523a}
 button.main:active{transform:translateY(2px);box-shadow:0 2px 0 #05523a}
 button.main.alt{background:var(--ink);box-shadow:0 4px 0 #000}
@@ -87,6 +86,7 @@ button.sub:disabled{opacity:.4;cursor:default}
 .stamps{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .stamps span{aspect-ratio:1;border-radius:50%;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:11px;color:var(--ink2)}
 .stamps span.got{border:2px solid var(--end);color:var(--end);font-weight:800;transform:rotate(-12deg);background:#d4372c0d}
+.stamps span.got.late{opacity:.55;border-style:dashed;transform:none}
 .stamps span.today{outline:2px solid var(--gold);outline-offset:1px}
 .share{background:var(--card);border-radius:12px;padding:12px;white-space:pre-line;font-size:15px;line-height:1.6;text-align:center;border:1px solid var(--line)}
 .shares{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -106,7 +106,54 @@ dialog a{color:var(--accent);min-height:44px;display:inline-flex;align-items:cen
 .hint{background:#fff8e6;border:1px solid var(--gold);border-radius:12px;padding:10px 12px;font-size:14px;text-align:center}
 footer{margin-top:auto;text-align:center;font-size:12px;color:var(--ink2);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:center}
+/* 手ごたえ：着いた駅がはずむ・つながっていない駅は小さくゆれる・取り残された駅は赤い点線 */
+.st circle{transform-box:fill-box;transform-origin:center}
+.st.pop circle{animation:pop .28s ease-out}
+@keyframes pop{40%{transform:scale(1.45)}}
+.st.nope circle{animation:nope .3s ease-in-out}
+@keyframes nope{25%{transform:translateX(-3px);stroke:#d4372c}75%{transform:translateX(3px);stroke:#d4372c}}
+.st.lost circle{stroke:var(--end);stroke-dasharray:4 3}
+.warn{background:#fdecea;border:1px solid var(--end);color:#8f1d15;border-radius:12px;padding:8px 12px;font-size:14px;text-align:center;font-weight:700}
+.warn[hidden]{display:none}
+.won-st circle{animation:lit .5s ease-out both}
+@keyframes lit{50%{transform:scale(1.35);fill:#e3a417}}
+/* 実績・乗車記録 */
+.achnew{background:#fff8e6;border:1px solid var(--gold);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;margin:0;text-align:center}
+.achs{display:flex;flex-direction:column;gap:8px}
+.ach{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:36px 1fr auto;gap:2px 10px;align-items:center}
+.ach .ic{grid-row:span 2;font-size:24px;text-align:center;filter:grayscale(1);opacity:.45}
+.ach.got{border-color:var(--gold);background:#fffaf0}
+.ach.got .ic{filter:none;opacity:1}
+.ach b{font-size:15px}
+.ach small{color:var(--ink2);font-size:12px;grid-column:2}
+.ach .k{font-size:11px;color:var(--ink2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap}
+.ach .pg{grid-column:2/4;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2)}
+.ach .pg i{flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden;display:block}
+.ach .pg i span{display:block;height:100%;background:var(--accent)}
+.calnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.calnav b{font-size:17px}
+.calnav .icon:disabled{opacity:.3;cursor:default}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:11px;color:var(--ink2);text-align:center}
+.cal .c{min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--ink2);background:var(--card);border:1px solid var(--line);box-sizing:border-box;position:relative;line-height:1.1}
+.cal .c.e{background:none;border:none}
+.cal .c.out{opacity:.35}
+.cal .c i{font-style:normal;font-size:10px;letter-spacing:-.05em}
+.cal .c.d1{background:#0a7a5533;color:var(--ink)}.cal .c.d2{background:#0a7a5577;color:var(--ink)}.cal .c.d3{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cal .c.late{background:#0a7a5514;border:1.5px dashed var(--accent);color:var(--ink)}
+.cal .c.hd::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.cal .c.today{outline:2px solid var(--gold);outline-offset:1px}
+.cal button.c{all:unset;box-sizing:border-box;cursor:pointer;min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;border:1.5px dashed var(--ink2);color:var(--ink);background:var(--card);line-height:1.1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:12px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend em{display:inline-block;width:14px;height:14px;border-radius:4px}
+.misses{display:flex;flex-wrap:wrap;gap:8px}
+.misses button.sub{flex:1 1 30%;min-width:88px;flex-direction:column;gap:0;font-size:14px}
+@media (max-width:360px){.row>.sub{font-size:14px;padding:0 6px}}
+.misses small{font-size:11px;color:var(--ink2);font-weight:500}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* all:unset のボタン（カレンダーのます目など）でも枠が消えないよう、いちばん最後に強く書く（2026-11-04 CodeRabbit） */
+:is(button,a):focus-visible{outline:3px solid var(--gold)!important;outline-offset:2px}
 </style>
 </head>
 <body>
@@ -170,13 +217,14 @@ function puzzle(tag) { // tag: "d:<日付>:<0-2>" / "h:<日付>" / "p:<大きさ
 const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 
 // ---- 記録（この端末の localStorage だけ）----
-const fresh = () => ({ v: 1, days: {}, hdays: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} });
+const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, apark: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} }); // late: あとから遊んだ日（連続・今日の記録には入れない）。apark: あとから遊ぶ日の途中経過を日付ごとに預ける
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
 const doneOf = (r) => !!r && r.i >= r.tags.length, recOf = (r) => ({ h: r.hints });
 // 終わった今日・上級の回を日ごとの記録に入れる（結果を見る前に別のタブが次の日を保存しても、終えた日を失わない）
-function bank(s, r) { const b = doneOf(r) ? (r.mode === "d" ? s.days : r.mode === "h" ? s.hdays : null) : null; if (!b || b[r.date]) return false; b[r.date] = recOf(r); return true; }
-function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 10 + (r.curHints || 0) : 0), idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = r.mode === "d" ? s.days : r.mode === "h" ? s.hdays : null; if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = x.date > y.date ? [x, y] : [y, x]; bank(s, l); s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } return s; } // 保存に失敗したあとはメモリと保存の両方を読み、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
+const bookOf = (s, m) => (m === "d" ? s.days : m === "h" ? s.hdays : m === "a" ? (s.late = s.late || {}) : null);
+function bank(s, r) { const b = doneOf(r) ? bookOf(s, r.mode) : null; if (!b || b[r.date] || (r.mode === "a" && s.days[r.date])) return false; b[r.date] = recOf(r); return true; }
+function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); a = Object.assign(fresh(), a); b = Object.assign(fresh(), b); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; else if (y === undefined && x && typeof x === "object") s[k] = x; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 1000 + Math.min(r.curHints || 0, 999) : 0) /* 通った駅が多いほうを先に比べ、ヒントの数は同じ駅数のときだけ使う */, idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); for (const d in o.apark || {}) { const x = o.apark[d], y = (n.apark || {})[d]; if (x && y && prog(x) > prog(y)) s.apark[d] = x; } s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = bookOf(s, r.mode); if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = m === "a" ? (n === a ? [x, y] : [y, x]) : x.date > y.date ? [x, y] : [y, x]; bank(s, l); if (m === "a" && !doneOf(l)) { s.apark = s.apark || {}; if (!s.apark[l.date] || prog(s.apark[l.date]) < prog(l)) s.apark[l.date] = l; } s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } const ca = s.runs.a, pa = ca && s.apark && s.apark[ca.date]; if (pa && !doneOf(pa) && !doneOf(ca) && prog(pa) > prog(ca)) { s.runs.a = pa; delete s.apark[pa.date]; } /* 同じ日の預けた途中経過のほうが進んでいれば、そちらで続ける */ return s; } // 保存に失敗したあとはメモリと保存の両方を読み（古い形の側にも late などの入れ物を補ってから）、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
@@ -184,6 +232,36 @@ const starStr = (s) => `<span class="stars" aria-label="星${s}つ">${"★".repe
 const RANKS = [[0, "見習い"], [10, "運転士"], [30, "ベテラン運転士"], [100, "名人運転士"]];
 const rankOf = (n) => RANKS.filter(([x]) => n >= x).pop()[1];
 const nextRank = (n) => RANKS.find(([x]) => x > n);
+
+// ---- 乗車記録（カレンダー）・あとから遊ぶ・実績（どれもいまの記録から毎回数える）----
+const addDay = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10);
+const LATE_DAYS = 7;
+// 取りこぼした日：今日より前の7日のうち、今日の3路線をまだ遊んでいない日（はじめの日 EPOCH より前の日は無い）
+function missedDays(s, k = todayKey()) { const out = []; for (let i = 1; i <= LATE_DAYS; i++) { const d = addDay(k, -i); if (d < EPOCH) break; if (!s.days[d] && !(s.late || {})[d]) out.push(d); } return out; }
+const dayStars = (rec) => rec.h.reduce((a, h) => a + starsOf(h), 0);
+const dayRecs = (s) => [...Object.values(s.days), ...Object.values(s.late || {})].filter((r) => r && Array.isArray(r.h));
+const playedDays = (s) => [...new Set([...Object.keys(s.days), ...Object.keys(s.late || {})])].sort(); // 今日の3路線を終えた日（あとからも入れる）
+function maxRun(keys) { let best = 0, n = 0, prev = null; for (const k of keys) { n = prev && addDay(prev, 1) === k ? n + 1 : 1; best = Math.max(best, n); prev = k; } return best; }
+// 実績：[id, 名前, 条件, 種類, (記録) => [いまの数, 目標]]。腕前・集める・続けるを混ぜる。続けるは連続でなく合計で数える
+const ACH = [
+  ["first", "はじめての開通", "路線を1つ開通する", "腕前", (s) => [Math.min(s.cnt || 0, 1), 1]],
+  ["perfect", "完ぺきな一日", "1日の3路線を全部ヒントなしで", "腕前", (s) => [dayRecs(s).some((r) => r.h.length === 3 && r.h.every((h) => h === 0)) ? 1 : 0, 1]],
+  ["hard1", "特急デビュー", "上級の特急を開通する", "腕前", (s) => [Math.min(Object.keys(s.hdays).length, 1), 1]],
+  ["hard5", "特急の常連", "特急を5日開通する", "腕前", (s) => [Object.keys(s.hdays).length, 5]],
+  ["clean30", "ヒントなし30路線", "ヒントなしで30路線開通する", "腕前", (s) => [s.clean || 0, 30]],
+  ["types", "全種別で★3", "各駅・快速・急行・特急をヒントなしで", "集める", (s) => { const t = new Set(); for (const r of dayRecs(s)) r.h.forEach((h, i) => { if (h === 0) t.add(i); }); if (Object.keys(s.hdays).length) t.add(3); return [t.size, 4]; }],
+  ["week", "1週間そろえる", "乗車記録を7日続けて埋める（あとからも可）", "集める", (s) => [maxRun(playedDays(s)), 7]],
+  ["month", "ひと月10日", "同じ月に10日乗る", "集める", (s) => { const c = {}; for (const k of playedDays(s)) c[k.slice(0, 7)] = (c[k.slice(0, 7)] || 0) + 1; return [Math.max(0, ...Object.values(c)), 10]; }],
+  ["late1", "取りこぼし回収", "取りこぼした日をあとから開通する", "続ける", (s) => [Math.min(Object.keys(s.late || {}).length, 1), 1]],
+  ["days3", "3日乗車", "1日の3路線を合わせて3日", "続ける", (s) => [playedDays(s).length, 3]],
+  ["days10", "10日乗車", "1日の3路線を合わせて10日", "続ける", (s) => [playedDays(s).length, 10]],
+  ["days30", "30日乗車", "1日の3路線を合わせて30日", "続ける", (s) => [playedDays(s).length, 30]],
+];
+const achProg = (s, a) => { try { const [n, g] = a[4](s); return [Math.min(n, g), g]; } catch (e) { return [0, 1]; } };
+const achGot = (s) => ACH.filter((a) => { const [n, g] = achProg(s, a); return n >= g; }).map((a) => a[0]);
+// 新しく取れた実績を「見せた」印（ach）に入れて返す（save の中で呼ぶ）
+function claimAch(s) { s.ach = s.ach || {}; const n = achGot(s).filter((id) => !s.ach[id]); n.forEach((id) => (s.ach[id] = 1)); return n; }
+const achLine = (ids) => (ids && ids.length ? `<p class="achnew" role="status">🏅 実績：${ids.map((id) => ACH.find((a) => a[0] === id)[1]).join("・")}</p>` : "");
 
 function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); }
 const buzz = () => { try { navigator.vibrate && navigator.vibrate(10); } catch (e) {} };
@@ -208,10 +286,11 @@ function mapSvg(p, opt = {}) {
 function home() {
   const s = load(), k = todayKey(), done = s.days[k], hdone = s.hdays[k];
   // 最後の1問を終えて結果を見る前に閉じた日は、開き直したら結果へ進める（記録をつける）
-  for (const m of ["d", "h"]) { const r = s.runs[m]; if (r && r.i >= r.tags.length) { MODE = m; return finish(); } }
+  if (!s.ach) save((s2) => { if (!s2.ach) { s2.ach = {}; achGot(s2).forEach((id) => (s2.ach[id] = 1)); } }); // 実績の前から遊んでいた人は、もう取れている分をまとめて出さない（結果へ進む前に印をつける）
+  for (const m of ["d", "h", "a"]) { const r = s.runs[m]; if (r && r.i >= r.tags.length) { MODE = m; return finish(); } }
   const rd = s.runs.d, run = rd && rd.date === k ? rd : null;
-  const nr = nextRank(s.cnt);
-  let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : +d.slice(8, 10)}</span>`).join(""); }
+  const nr = nextRank(s.cnt), st = streak(s.days), miss = missedDays(s, k);
+  let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : (s.late || {})[d] ? "got late" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : (s.late || {})[d] ? "↺" : +d.slice(8, 10)}</span>`).join(""); }
   app.innerHTML = `
     <div class="sign"><div class="nm">路線図ひと筆</div><div class="yomi">ROSEN HITOFUDE</div><div class="bar"><span>始発</span><span>全部の駅を1回ずつ</span><span>終点</span></div></div>
     <div class="map hero" aria-hidden="true">${mapSvg(puzzle("p:1:20261104"), { names: false })}</div>
@@ -220,13 +299,17 @@ function home() {
     <button class="main" id="go-d">${done ? "今日の結果を見る" : run && run.mode === "d" ? `続きから（${SIZES[run.i].name}）` : `今日の3路線に乗る <small>#${dayNo(k)}</small>`}</button>
     ${done ? `<button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>` : ""}
     <div class="row"><button class="sub" id="go-p">練習（何度でも）</button></div>
-    <div class="stats"><div><b>${streak(s.days)}</b><small>連続の日</small></div><div><b>${s.cnt}</b><small>開通した路線</small></div><div><b>${s.clean}</b><small>ヒントなし</small></div></div>
-    <p class="rank">${rankOf(s.cnt)}${nr ? `（あと${nr[0] - s.cnt}路線で${nr[1]}）` : ""}</p>
+    ${miss.length ? `<button class="sub" id="go-late">↺ 取りこぼした日をあとから（${miss.length}日）</button>` : ""}
+    <div class="stats"><div><b>${playedDays(s).length}</b><small>乗った日</small></div><div><b>${s.cnt}</b><small>開通した路線</small></div><div><b>${s.clean}</b><small>ヒントなし</small></div></div>
+    <p class="rank">${rankOf(s.cnt)}${nr ? `（あと${nr[0] - s.cnt}路線で${nr[1]}）` : ""}${st >= 1 ? `<br><small class="streak">連続${st}日</small>` : ""}</p>
+    <div class="row"><button class="sub" id="go-ach">🏅 実績 ${achGot(s).length}/${ACH.length}</button><button class="sub" id="go-cal">📅 乗車記録</button></div>
     <div><p class="note" style="text-align:left;margin-bottom:6px">乗車スタンプ（2週間）</p><div class="stamps">${stamps}</div></div>
     ${footer()}`;
   $("go-d").onclick = () => (k !== todayKey() ? home() : done ? result("d", k) : startRun("d")); // 画面を開いたまま0時を過ぎたら、今日の状態に描き直す
   if ($("go-h")) $("go-h").onclick = () => (hdone ? result("h", k) : k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   $("go-p").onclick = practiceMenu;
+  $("go-ach").onclick = achView; $("go-cal").onclick = () => calView();
+  if ($("go-late")) $("go-late").onclick = () => calView();
   bindFooter();
   if (!s.tut) openHow();
 }
@@ -237,10 +320,19 @@ function practiceMenu() {
   document.querySelectorAll(".pick button").forEach((b) => (b.onclick = () => startRun("p", +b.dataset.i)));
   bindFooter();
 }
-function startRun(mode, size) {
+function startRun(mode, size, date) {
   const k = todayKey();
+  if (mode === "a" && !missedDays(load(), k).includes(date)) return calView(); // あとから遊べるのは、遊んでいない過去7日だけ
   save((s) => {
     const r = s.runs[mode];
+    if (mode === "a") { // 別の日の途中経過は消さずに apark へ日付ごとに預け、戻ってきたら続きから
+      if (r && r.date === date) return;
+      const park = (s.apark = s.apark || {}), ok = missedDays(s, k);
+      if (r && !doneOf(r)) park[r.date] = r;
+      const back = park[date]; delete park[date];
+      for (const d of Object.keys(park)) if (!ok.includes(d)) delete park[d]; // 7日を過ぎた日・遊び終えた日の預かりは捨てる
+      s.runs.a = back && !doneOf(back) && back.date === date ? back : { mode, date, tags: dailyTags(date), i: 0, hints: [], path: null }; return;
+    } // その日の3路線と同じ問題（日付の種）。途中経過は runs.a に分けて置く
     if (r && r.date === k && mode !== "p") return;
     if ((mode === "d" && s.days[k]) || (mode === "h" && s.hdays[k])) return; // 別のタブで今日の分を終えていたら、もう一度は始めない（ホームに戻る）
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
@@ -259,7 +351,7 @@ function play() {
   P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i };
   path = Array.isArray(run.path) && run.path[0] === P.s ? run.path.slice() : [P.s];
   hints = run.curHints || 0; won = false;
-  const label = run.mode === "d" ? SIZES[run.i].name : run.mode === "h" ? "特急" : "練習";
+  const label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : "練習";
   app.innerHTML = `
     <header><button class="icon" id="back" aria-label="もどる">←</button>
       ${run.tags.length > 1 ? `<div class="dots">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
@@ -268,6 +360,7 @@ function play() {
     <div class="map" id="map">${mapSvg(P)}</div>
     <div class="status"><span>通った駅</span><span class="bar"><i id="pbar"></i></span><span id="pnum"></span></div>
     <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
+    <p class="warn" id="warn" role="status" hidden></p>
     <div id="after"></div>
     ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint">「始」から、線路でつながった駅を順に押すか、なぞってください。</p>` : ""}`;
   $("back").onclick = home;
@@ -280,6 +373,12 @@ function play() {
 }
 const same = (r) => r && at && r.i === at.i && r.tags[r.i] === at.tag; // 保存した進み具合が、この画面と同じ路線か
 function keep() { save((s) => { const r = s.runs[MODE]; if (same(r)) { r.path = path.slice(); r.curHints = hints; } }); }
+// いまの駅から、まだ通っていない駅だけを通って行けない駅（一つずつ囲まれた駅も、遠くで切り離された駅のかたまりも）
+function lostOf(P, path) {
+  const vis = new Set(path), cur = path[path.length - 1], seen = new Set([cur]), q = [cur];
+  while (q.length) { const x = q.pop(); for (const w of P.adj[x]) if (!vis.has(w) && !seen.has(w)) { seen.add(w); if (w !== P.e) q.push(w); } } // 終点は最後にしか入れないので、終点の先へはたどらない
+  return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !seen.has(v));
+}
 function draw() {
   $("route").setAttribute("points", path.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   P.pts.forEach((_, i) => { const g = $("st" + i), on = path.includes(i); g.classList.toggle("on", on); g.querySelector("circle").setAttribute("fill", on ? "#1f2328" : "#fff"); });
@@ -289,16 +388,22 @@ function draw() {
   $("nextn").textContent = `のこり ${P.pts.length - path.length}駅`;
   $("pnum").textContent = `${path.length} / ${P.pts.length}`; $("pbar").style.width = (path.length / P.pts.length * 100) + "%";
   $("undo").disabled = $("reset").disabled = path.length <= 1 || won;
+  // 行き止まり・たどり着けなくなった駅を知らせる（答えは言わず、いまの道の結果だけ）
+  const vis = new Set(path), lost = won ? [] : lostOf(P, path);
+  P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
+  const stuck = !won && path.length < P.pts.length && !P.adj[cur].some((j) => !vis.has(j) && (j !== P.e || path.length === P.pts.length - 1));
+  const w = $("warn"); w.textContent = stuck ? "行き止まり。通った駅を押すと、そこまで戻れます" : lost.length ? "もう行けない駅ができました（赤い点線）" : ""; w.hidden = !w.textContent;
 }
-function tryStep(i) {
+const flash = (i, c) => { const g = $("st" + i); if (!g) return; g.classList.remove(c); void g.getBBox(); g.classList.add(c); };
+function tryStep(i, tap) {
   if (won || i == null) return;
   const cur = path[path.length - 1];
   if (i === cur) return;
   const at = path.indexOf(i);
   if (at >= 0) { path = path.slice(0, at + 1); draw(); keep(); return; } // 通った駅を押すとそこまで戻る
-  if (!P.adj[cur].includes(i)) return;
+  if (!P.adj[cur].includes(i)) { if (tap) flash(i, "nope"); return; } // 線路がつながっていない駅は小さくゆれる（押したのは伝わる）
   if (i === P.e && path.length !== P.pts.length - 1) { toast("終点は最後に着きます"); return; }
-  path.push(i); buzz(); draw(); keep();
+  path.push(i); buzz(); draw(); flash(i, "pop"); keep();
   if (path.length === P.pts.length) win();
 }
 function nearest(ev) {
@@ -310,7 +415,7 @@ function nearest(ev) {
 }
 function bindMap() {
   const m = $("map"); let down = false, last = null;
-  m.onpointerdown = (e) => { down = true; last = nearest(e); tryStep(last); try { m.setPointerCapture(e.pointerId); } catch (x) {} };
+  m.onpointerdown = (e) => { down = true; last = nearest(e); tryStep(last, true); try { m.setPointerCapture(e.pointerId); } catch (x) {} };
   m.onpointermove = (e) => { if (!down) return; const i = nearest(e); if (i != null && i !== last) { last = i; if (path.length >= 2 && path[path.length - 2] === i) { path.pop(); draw(); keep(); } else if (!path.includes(i)) tryStep(i); } };
   m.onpointerup = m.onpointercancel = () => { down = false; last = null; };
 }
@@ -327,53 +432,56 @@ function hint() {
 function win() {
   if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); }
   won = true; draw();
-  const st = starsOf(hints);
-  const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; s.cnt++; if (hints === 0) s.clean++; });
+  const st = starsOf(hints); let newA = [];
+  const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; s.cnt++; if (hints === 0) s.clean++; newA = claimAch(s); });
   const svg = $("map").querySelector("svg"), pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   pl.setAttribute("id", "won"); pl.setAttribute("points", P.sol.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   const len = P.sol.length * SP * 1.2; pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len; pl.style.transition = "stroke-dashoffset 1.4s ease-in-out";
   svg.insertBefore(pl, $("route").nextSibling); requestAnimationFrame(() => requestAnimationFrame(() => (pl.style.strokeDashoffset = 0)));
+  P.sol.forEach((i, j) => { const g = $("st" + i); g.classList.remove("pop"); g.style.animationDelay = ""; g.querySelector("circle").style.animationDelay = (j / P.sol.length * 1.4).toFixed(2) + "s"; g.classList.add("won-st"); }); // 金の線が通るのに合わせて駅が順に光る
+  try { navigator.vibrate && navigator.vibrate([15, 60, 15, 60, 30]); } catch (e) {}
   const r = s.runs[MODE], last = r && r.i >= r.tags.length;
-  $("after").innerHTML = `<div class="verdict" role="status"><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p><button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
+  $("after").innerHTML = `<div class="verdict" role="status"><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p>${achLine(newA)}<button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
   $("next").onclick = play;
   setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
 }
 function finish() {
   const s = load(), run = s.runs[MODE];
   if (!run) return home();
-  let first = false;
+  let first = false, newA = [];
   save((s2) => {
-    first = bank(s2, run);
+    first = bank(s2, run); newA = claimAch(s2);
     // 別のタブで同じモードの新しい回が始まっていたら、それは消さない
     const c = s2.runs[MODE]; if (c && c.date === run.date && c.id === run.id) s2.runs[MODE] = null;
   });
   if (run.mode === "p") return practiceMenu();
-  result(run.mode, run.date, first);
+  result(run.mode, run.date, first, newA);
 }
 function untilNext() { const n = jstNow(), ms = 864e5 - (n.getTime() % 864e5); return `${Math.floor(ms / 36e5)}時間${Math.floor((ms % 36e5) / 6e4)}分`; }
 function shareText(mode, k, hs) {
   const names = mode === "h" ? [HARD.name] : SIZES.map((z) => z.name);
-  return `路線図ひと筆${mode === "h" ? " 上級" : ""} #${dayNo(k)} ${md(k)}\n${names.map((n, i) => `${n} ${"★".repeat(starsOf(hs[i]))}${"☆".repeat(3 - starsOf(hs[i]))}`).join("\n")}`;
+  return `路線図ひと筆${mode === "h" ? " 上級" : ""} #${dayNo(k)} ${md(k)}${mode === "a" ? "（あとから）" : ""}\n${names.map((n, i) => `${n} ${"★".repeat(starsOf(hs[i]))}${"☆".repeat(3 - starsOf(hs[i]))}`).join("\n")}`;
 }
-function result(mode, k, first) {
-  const s = load(), rec = (mode === "d" ? s.days : s.hdays)[k];
+function result(mode, k, first, newA) {
+  const s = load(), rec = bookOf(s, mode)[k];
   if (!rec) return home();
-  const tags = mode === "d" ? dailyTags(k) : [`h:${k}`], text = shareText(mode, k, rec.h);
-  const perfect = rec.h.every((h) => h === 0), showKofi = first && perfect && !s.kofi[k + mode];
+  const tags = mode === "h" ? [`h:${k}`] : dailyTags(k), text = shareText(mode, k, rec.h);
+  const perfect = rec.h.every((h) => h === 0), showKofi = mode !== "a" && first && perfect && !s.kofi[k + mode]; // あとから遊んだ日は Ko-fi の1行を出さない
   if (showKofi) save((s2) => { s2.kofi[k + mode] = 1; });
   app.innerHTML = `
-    <header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>路線図ひと筆<small>${mode === "d" ? `今日の3路線 #${dayNo(k)}` : "上級：特急"}</small></h1><span></span></header>
+    <header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>路線図ひと筆<small>${mode === "d" ? `今日の3路線 #${dayNo(k)}` : mode === "a" ? `#${dayNo(k)} あとから` : "上級：特急"}</small></h1><span></span></header>
     <div class="mini" style="${mode === "h" ? "grid-template-columns:1fr" : ""}">${tags.map((t, i) => `<div>${mapSvg(puzzle(t), { sol: true, names: false })}<b>${mode === "h" ? HARD.name : SIZES[i].name}</b><br>${starStr(starsOf(rec.h[i]))}</div>`).join("")}</div>
+    ${achLine(newA)}
     <div class="share">${text}</div>
     <button class="main" id="share">結果をシェア</button>
     <div class="shares"><a id="toX" target="_blank" rel="noopener">Xで投稿</a><a id="toLine" target="_blank" rel="noopener">LINEで送る</a><button id="copy">コピー</button></div>
     <p class="note">次の路線まで あと <b>${untilNext()}</b></p>
     ${mode === "d" && k === todayKey() && !s.hdays[k] ? `<button class="main alt" id="go-h">上級：特急に乗る</button>` : ""}
-    <div class="row"><button class="sub" id="go-p">練習する</button></div>
+    <div class="row"><button class="sub" id="go-p">練習する</button><button class="sub" id="go-cal">📅 乗車記録</button></div>
     ${showKofi ? `<p class="note kofi">楽しめたら、<a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi でコーヒー1杯の応援</a>をもらえると、新しい路線とゲームづくりの励みになります（任意・遊ぶのはずっと無料）。</p>` : ""}
     <p class="note"><a href="${FEEDBACK}" target="_blank" rel="noopener" id="fb">感想を送る</a></p>`;
   $("back").onclick = home;
-  $("go-p").onclick = practiceMenu;
+  $("go-p").onclick = practiceMenu; $("go-cal").onclick = () => calView();
   if ($("go-h")) $("go-h").onclick = () => (k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   const withUrl = text + "\n" + SITE;
   $("toX").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(withUrl);
@@ -383,7 +491,43 @@ function result(mode, k, first) {
   $("share").onclick = () => { if (navigator.share) navigator.share({ text: withUrl }).catch(() => {}); else copy(withUrl); };
 }
 
-window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }) };
+// ---- 実績 ----
+function achView() {
+  const s = load(), got = achGot(s);
+  app.innerHTML = `<header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>実績<small>${got.length}/${ACH.length}</small></h1><span></span></header>
+    <div class="achs">${ACH.map((a) => { const [n, g] = achProg(s, a), ok = n >= g; return `<div class="ach${ok ? " got" : ""}" data-id="${a[0]}"><span class="ic">🏅</span><b>${a[1]}</b><span class="k">${a[3]}</span><small>${a[2]}</small>${ok ? "" : `<span class="pg"><i><span style="width:${Math.round(n / g * 100)}%"></span></i>${n}/${g}</span>`}</div>`; }).join("")}</div>
+    ${footer()}`;
+  $("back").onclick = home; bindFooter(); window.scrollTo(0, 0);
+}
+// ---- 乗車記録（その月のカレンダー）。濃い色ほど★が多い日、点線はあとから乗った日、金の点は特急 ----
+function calView(ym) {
+  const s = load(), k = todayKey(), cur = k.slice(0, 7), min = EPOCH.slice(0, 7); ym = ym || cur;
+  const [Y, Mo] = ym.split("-").map(Number), dow = new Date(Date.UTC(Y, Mo - 1, 1)).getUTCDay(), dim = new Date(Date.UTC(Y, Mo, 0)).getUTCDate();
+  const miss = missedDays(s, k), ra = s.runs.a, late = s.late || {}, st = streak(s.days);
+  const shift = (n) => { const d = new Date(Date.UTC(Y, Mo - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+  let cells = "日月火水木金土".split("").map((w) => `<div class="wd">${w}</div>`).join("") + `<div class="c e"></div>`.repeat(dow), inMonth = 0;
+  for (let d = 1; d <= dim; d++) {
+    const key = `${ym}-${String(d).padStart(2, "0")}`, rec = s.days[key], lr = late[key], ex = (s.hdays[key] ? " hd" : "") + (key === k ? " today" : "");
+    if (rec) { inMonth++; const n = dayStars(rec); cells += `<div class="c d${n >= 9 ? 3 : n >= 7 ? 2 : 1}${ex}" title="${md(key)} ★${n}">${d}<i>★${n}</i></div>`; }
+    else if (lr) { inMonth++; cells += `<div class="c late${ex}" title="${md(key)} あとから ★${dayStars(lr)}">${d}<i>↺★${dayStars(lr)}</i></div>`; }
+    else if (miss.includes(key)) cells += `<button class="c" data-d="${key}" aria-label="${md(key)}の3路線をあとから">${d}<i>${(ra && ra.date === key) || (s.apark || {})[key] ? "続き" : "↺乗る"}</i></button>`;
+    else cells += `<div class="c${key > k || key < EPOCH ? " out" : ""}${ex}">${d}</div>`;
+  }
+  app.innerHTML = `<header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>乗車記録<small>${inMonth ? `この月 ${inMonth}日` : ""}</small></h1><span></span></header>
+    <div class="calnav"><button class="icon" id="cal-prev" aria-label="前の月"${ym <= min ? " disabled" : ""}>‹</button><b id="cal-ym">${Y}年${Mo}月</b><button class="icon" id="cal-next" aria-label="次の月"${ym >= cur ? " disabled" : ""}>›</button></div>
+    <div class="cal">${cells}</div>
+    <div class="legend"><span><em style="background:var(--accent)"></em>その日に乗った（濃いほど★）</span><span><em style="border:1.5px dashed var(--accent)"></em>あとから</span><span><em style="background:var(--gold);border-radius:50%;width:9px;height:9px"></em>特急</span></div>
+    ${st >= 1 ? `<p class="note">いま 連続${st}日</p>` : ""}
+    ${miss.length ? `<p class="note">取りこぼした日は、7日前まであとから乗れます（同じ3路線・連続の日には入りません）</p><div class="misses">${miss.map((d) => `<button class="sub" data-d="${d}">${md(d)}<small>#${dayNo(d)}${(ra && ra.date === d) || (s.apark || {})[d] ? "・続き" : ""}</small></button>`).join("")}</div>` : ""}
+    ${footer()}`;
+  $("back").onclick = home;
+  if (ym > min) $("cal-prev").onclick = () => calView(shift(-1));
+  if (ym < cur) $("cal-next").onclick = () => calView(shift(1));
+  document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => startRun("a", null, b.dataset.d)));
+  bindFooter(); window.scrollTo(0, 0);
+}
+
+window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
