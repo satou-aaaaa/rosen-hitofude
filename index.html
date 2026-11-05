@@ -376,7 +376,7 @@ function keep() { save((s) => { const r = s.runs[MODE]; if (same(r)) { r.path = 
 // いまの駅から、まだ通っていない駅だけを通って行けない駅（一つずつ囲まれた駅も、遠くで切り離された駅のかたまりも）
 function lostOf(P, path) {
   const vis = new Set(path), cur = path[path.length - 1], seen = new Set([cur]), q = [cur];
-  while (q.length) { const x = q.pop(); for (const w of P.adj[x]) if (!vis.has(w) && !seen.has(w)) { seen.add(w); q.push(w); } }
+  while (q.length) { const x = q.pop(); for (const w of P.adj[x]) if (!vis.has(w) && !seen.has(w)) { seen.add(w); if (w !== P.e) q.push(w); } } // 終点は最後にしか入れないので、終点の先へはたどらない
   return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !seen.has(v));
 }
 function draw() {

@@ -117,12 +117,13 @@ try {
   check("途中で閉じても、通った駅のまま続きから", (await cur(page)).length === 3);
   await page.click("#back"); await page.click("#go-p"); await page.locator(".pick button").first().click(); await page.click("#back"); await page.click("#go-d");
   check("練習を始めても、今日の途中経過は消えない（通った駅のまま続きから）", (await cur(page)).length === 3 && (await page.evaluate(() => window.__rh.mode())) === "d");
+  check("終点の先にしか無い駅は「もう行けない駅」に入れ、終点そのものは入れない（終点は最後にしか入れないため。2026-11-05 CodeRabbit）", await page.evaluate(() => { const P = { pts: [0, 0, 0, 0], adj: [[1], [0, 2], [1, 3], [2]], s: 0, e: 2 }; return JSON.stringify(window.__rh.lostOf(P, [0])) === "[3]" && JSON.stringify(window.__rh.lostOf(P, [0, 1])) === "[3]"; }));
   { // 行き止まり・もう行けない駅を知らせる（答えは言わない）
     const r = await page.evaluate(() => { const g = window.__rh, { P } = g.state(), back = g.state().path.slice();
       const walk = [P.s]; while (true) { const c = walk[walk.length - 1], n = P.adj[c].filter((j) => !walk.includes(j) && j !== P.e); if (!n.length) break; const w = n.find((j) => j !== P.sol[walk.length]) ?? n[0]; walk.push(w); }
       g.tryStep(P.s); for (const i of walk.slice(1)) g.tryStep(i);
       const vis = new Set(walk), cur = walk[walk.length - 1], warn = document.getElementById("warn");
-      const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const want = lostX(P, walk);
+      const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); if (x === P.e) return; P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const want = lostX(P, walk);
       const lostOk = JSON.stringify([...document.querySelectorAll(".st.lost")].map((e) => +e.id.slice(2)).sort((a, b) => a - b)) === JSON.stringify(want);
       const out = { len: walk.length, n: P.pts.length, shown: !warn.hidden, text: warn.textContent, lostOk, lost: document.querySelectorAll(".st.lost").length };
       g.tryStep(P.s); for (const i of back.slice(1)) g.tryStep(i);
@@ -136,7 +137,7 @@ try {
         for (let k = 0; k < 40; k++) { const c = walk[walk.length - 1], n = P0.adj[c].filter((j) => !walk.includes(j) && (j !== P0.e || walk.length === P0.pts.length - 1)); if (!n.length) break; const w = n[Math.floor(R() * n.length)]; walk.push(w); g.tryStep(w); if (walk.length === P0.pts.length) break; }
         if (g.state().won) continue;
         const vis = new Set(walk), cur = walk[walk.length - 1], stuck = !P0.adj[cur].some((j) => !vis.has(j) && (j !== P0.e || walk.length === P0.pts.length - 1));
-        const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const lost = lostX(P0, walk);
+        const lostX = (P, walk) => { const vis = new Set(walk), cur = walk[walk.length - 1], ok = new Set(); const go = (x) => { ok.add(x); if (x === P.e) return; P.adj[x].forEach((w) => { if (!vis.has(w) && !ok.has(w)) go(w); }); }; go(cur); return P.pts.map((_, v) => v).filter((v) => !vis.has(v) && !ok.has(v)); }; const lost = lostX(P0, walk);
         const shown = [...document.querySelectorAll(".st.lost")].map((e) => +e.id.slice(2)).sort((a, b) => a - b);
         if (JSON.stringify(shown) !== JSON.stringify(lost) || (stuck && document.getElementById("warn").hidden)) bad++;
         if (stuck) stuckN++; if (!document.getElementById("warn").hidden) warned++; }
