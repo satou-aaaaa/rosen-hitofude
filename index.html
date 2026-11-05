@@ -75,6 +75,8 @@ button.sub:disabled{opacity:.4;cursor:default}
 .verdict b{font-size:24px}
 .stars{color:var(--gold);letter-spacing:.1em;font-size:22px}
 .stars .off{color:#8b8f94}
+.life{font-size:18px;letter-spacing:2px;white-space:nowrap}.life .off{opacity:.25}
+.big{font-weight:800;font-size:26px;text-align:center;margin:0}
 .hero svg{width:100%;height:auto;display:block}
 .title{font-weight:800;font-size:38px;letter-spacing:.12em;text-align:center;margin:4px 0 0}
 .lead{text-align:center;color:var(--ink2);margin:0;font-size:14px;line-height:1.7}
@@ -370,9 +372,15 @@ function puzzle(tag) { // tag: "d:<日付>:<0-2>" / "h:<日付>" / "p:<大きさ
   return (cache[tag] = dress(make(seed, sz.W, sz.H, sz.holes, sz.extra), seed));
 }
 const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
+// とことん：各駅3 → 快速5 → 急行10 → 特急42路線を、毎回ちがう種で次々に出す（乱数は練習ととことんだけ。日付の種は使わない）
+const ELIFE = 3, ERAMP = [[0, 3], [1, 5], [2, 10], [3, 42]];
+function endlessList() { const out = [], seen = new Set(); for (const [sz, n] of ERAMP) for (let j = 0; j < n; j++) { let seed; do seed = Math.floor(Math.random() * 1e9); while (seen.has(seed)); seen.add(seed); out.push(`p:${sz}:${seed}`); } return out; }
+const sizeOf = (tag) => { const z = +tag.split(":")[1]; return z === 3 ? HARD : SIZES[z]; };
+const lifeStr = (n) => "🎫".repeat(Math.max(0, n)) + `<span class="off">${"🎫".repeat(Math.max(0, ELIFE - n))}</span>`;
 
 // ---- 記録（この端末の localStorage だけ）----
-const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, apark: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {} }); // late: あとから遊んだ日（連続・今日の記録には入れない）。apark: あとから遊ぶ日の途中経過を日付ごとに預ける
+const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, apark: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {}, ebest: 0 }); // ebest：とことんで開通させた路線の数の自己ベスト（今日の記録・連続・Ko-fi・シェアには数えない）
+// late: あとから遊んだ日（連続・今日の記録には入れない）。apark: あとから遊ぶ日の途中経過を日付ごとに預ける
 let MODE = "d"; // 遊んでいるモード。途中経過はモードごとに runs[mode] へ分けて置く（練習で今日の途中を消さない）
 let mem = null; // 保存できない環境（保存を切ったブラウザなど）では、開いているあいだだけここに置く
 const doneOf = (r) => !!r && r.i >= r.tags.length, recOf = (r) => ({ h: r.hints });
@@ -452,7 +460,7 @@ function home() {
   const s = load(), k = todayKey(), done = s.days[k], hdone = s.hdays[k];
   // 最後の1問を終えて結果を見る前に閉じた日は、開き直したら結果へ進める（記録をつける）
   if (!s.ach) save((s2) => { if (!s2.ach) { s2.ach = {}; achGot(s2).forEach((id) => (s2.ach[id] = 1)); } }); // 実績の前から遊んでいた人は、もう取れている分をまとめて出さない（結果へ進む前に印をつける）
-  for (const m of ["d", "h", "a"]) { const r = s.runs[m]; if (r && r.i >= r.tags.length) { MODE = m; return finish(); } }
+  for (const m of ["d", "h", "a", "e"]) { const r = s.runs[m]; if (r && r.i >= r.tags.length) { MODE = m; return finish(); } }
   const rd = s.runs.d, run = rd && rd.date === k ? rd : null;
   const nr = nextRank(s.cnt), st = streak(s.days), miss = missedDays(s, k);
   let stamps = ""; { let d = k; const arr = []; for (let i = 0; i < 14; i++) { arr.unshift(d); d = prevDay(d); } stamps = arr.map((d) => `<span class="${s.days[d] ? "got" : (s.late || {})[d] ? "got late" : ""} ${d === k ? "today" : ""}" title="${md(d)}">${s.days[d] ? "済" : (s.late || {})[d] ? "↺" : +d.slice(8, 10)}</span>`).join(""); }
@@ -463,6 +471,7 @@ function home() {
     ${done ? `<div class="share">今日の結果\n${SIZES.map((z, i) => `${z.name} ${"★".repeat(starsOf(done.h[i]))}`).join("　")}</div>` : ""}
     <button class="main" id="go-d">${done ? "今日の結果を見る" : run && run.mode === "d" ? `続きから（${SIZES[run.i].name}）` : `今日の3路線に乗る <small>#${dayNo(k)}</small>`}</button>
     ${done ? `<button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>` : ""}
+    ${(() => { const re = s.runs.e && !doneOf(s.runs.e) ? s.runs.e : null; return `<button class="main alt" id="go-e">${re ? `とことんの続きから（${re.i + 1}路線目）` : "とことん：何路線開通できる？"}${s.ebest ? ` <small>自己ベスト ${s.ebest}路線</small>` : ""}</button>`; })()}
     <div class="row"><button class="sub" id="go-p">練習（何度でも）</button></div>
     ${miss.length ? `<button class="sub" id="go-late">↺ 取りこぼした日をあとから（${miss.length}日）</button>` : ""}
     <div class="stats"><div><b>${playedDays(s).length}</b><small>乗った日</small></div><div><b>${s.cnt}</b><small>開通した路線</small></div><div><b>${s.clean}</b><small>ヒントなし</small></div></div>
@@ -473,6 +482,7 @@ function home() {
   $("go-d").onclick = () => (k !== todayKey() ? home() : done ? result("d", k) : startRun("d")); // 画面を開いたまま0時を過ぎたら、今日の状態に描き直す
   if ($("go-h")) $("go-h").onclick = () => (hdone ? result("h", k) : k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   $("go-p").onclick = practiceMenu;
+  $("go-e").onclick = () => startRun("e");
   $("go-ach").onclick = achView; $("go-cal").onclick = () => calView();
   if ($("go-late")) $("go-late").onclick = () => calView();
   bindFooter();
@@ -498,6 +508,7 @@ function startRun(mode, size, date) {
       for (const d of Object.keys(park)) if (!ok.includes(d)) delete park[d]; // 7日を過ぎた日・遊び終えた日の預かりは捨てる
       s.runs.a = back && !doneOf(back) && back.date === date ? back : { mode, date, tags: dailyTags(date), i: 0, hints: [], path: null }; return;
     } // その日の3路線と同じ問題（日付の種）。途中経過は runs.a に分けて置く
+    if (mode === "e") { if (r && !doneOf(r)) return; s.runs.e = { mode, date: k, tags: endlessList(), i: 0, hints: [], path: null, life: ELIFE, id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8) }; return; } // とことん：途中なら続きから（日をまたいでも続けられる）
     if (r && r.date === k && mode !== "p") return;
     if ((mode === "d" && s.days[k]) || (mode === "h" && s.hdays[k])) return; // 別のタブで今日の分を終えていたら、もう一度は始めない（ホームに戻る）
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
@@ -508,30 +519,32 @@ function startRun(mode, size, date) {
 }
 
 // ---- 遊ぶ ----
-let P = null, path = [], hints = 0, won = false, at = null; // at: 今の画面がどの回のどの路線か（古いタブの書き込みを止める）
+let P = null, path = [], hints = 0, won = false, at = null, elife = 0; // at: 今の画面がどの回のどの路線か（古いタブの書き込みを止める）
 function play() {
   const s = load(), run = s.runs[MODE];
   if (!run) return home();
   if (run.i >= run.tags.length) return finish();
   P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i };
   path = Array.isArray(run.path) && run.path[0] === P.s ? run.path.slice() : [P.s];
-  hints = run.curHints || 0; won = false;
-  const label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : "練習";
+  hints = run.curHints || 0; won = false; elife = run.life || 0;
+  const en = run.mode === "e", label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : en ? sizeOf(at.tag).name : "練習";
   app.innerHTML = `
     <header><button class="icon" id="back" aria-label="もどる">←</button>
-      ${run.tags.length > 1 ? `<div class="dots" role="img" aria-label="${run.tags.length}路線のうち${run.i + 1}つ目">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
-      <span style="font-size:13px;color:var(--ink2)">${label}・${P.pts.length}駅</span></header>
+      ${en ? `<span class="life" id="life" aria-label="ヒントに使える回数 ${elife}">${lifeStr(elife)}</span><span style="font-size:13px;color:var(--ink2)">${label} ${run.i + 1}路線目${s.ebest ? `（ベスト ${s.ebest}）` : ""}</span></header>` : `${run.tags.length > 1 ? `<div class="dots" role="img" aria-label="${run.tags.length}路線のうち${run.i + 1}つ目">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
+      <span style="font-size:13px;color:var(--ink2)">${label}・${P.pts.length}駅</span></header>`}
     <div class="sign" data-a11y-say><div class="lr"><span id="prev">　</span><span id="nextn">　</span></div><div class="nm" id="here" style="font-size:24px;padding-top:2px">${P.names[P.s]}</div><div class="bar" style="height:8px"></div></div>
     <div class="map" id="map">${mapSvg(P, { play: true })}</div>
     <div class="status"><span>通った駅</span><span class="bar"><i id="pbar"></i></span><span id="pnum"></span></div>
-    <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
+    <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント${en ? "🎫" : ""}</button>`}</div>
     <p class="warn" id="warn" role="status" data-a11y-say hidden></p>
     <div id="after"></div>
+    ${en ? `<p class="note">ヒント1回で🎫を1枚使います（🎫が無いとヒントは出ません）。</p><button class="sub" id="quit" style="width:100%">ここで降りる（${run.i}路線で終える）</button>` : ""}
     ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint" data-a11y-say>「始」から、線路でつながった駅を順に押すか、なぞってください。キーボードでは矢印で駅を選び、Enter で進みます。</p>` : ""}`;
   $("back").onclick = home;
   $("undo").onclick = () => { if (!won && path.length > 1) { path.pop(); draw(); keep(); } };
   $("reset").onclick = () => { if (!won) { path = [P.s]; draw(); keep(); } };
   if ($("hint")) $("hint").onclick = hint;
+  if ($("quit")) $("quit").onclick = () => finish();
   bindMap();
   draw();
   window.scrollTo(0, 0); // 前の路線の「開通」までスクロールしたままにしない
@@ -553,6 +566,7 @@ function draw() {
   $("nextn").textContent = `のこり ${P.pts.length - path.length}駅`;
   $("pnum").textContent = `${path.length} / ${P.pts.length}`; $("pbar").style.width = (path.length / P.pts.length * 100) + "%";
   $("undo").disabled = $("reset").disabled = path.length <= 1 || won;
+  if ($("hint")) $("hint").disabled = won || (MODE === "e" && elife <= 0); // とことんは🎫が無いとヒントを出さない
   // 行き止まり・たどり着けなくなった駅を知らせる（答えは言わず、いまの道の結果だけ）
   const vis = new Set(path), lost = won ? [] : lostOf(P, path);
   P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
@@ -598,6 +612,7 @@ function bindMap() {
 }
 function hint() {
   if (won) return;
+  if (MODE === "e") { let ok = false; save((s) => { const r = s.runs.e; if (same(r) && (r.life || 0) > 0) { r.life--; ok = true; } elife = r ? r.life || 0 : 0; }); const l = $("life"); if (l) { l.innerHTML = lifeStr(elife); l.setAttribute("aria-label", "ヒントに使える回数 " + elife); } if (!ok) return draw(); } // とことんはヒント1回で🎫1枚
   let k = 0; while (k < path.length && path[k] === P.sol[k]) k++;
   path = P.sol.slice(0, Math.max(1, k)); hints++;
   const nx = P.sol[path.length]; draw(); keep();
@@ -618,6 +633,7 @@ function win() {
   P.sol.forEach((i, j) => { const g = $("st" + i); g.classList.remove("pop"); g.style.animationDelay = ""; g.querySelector("circle").style.animationDelay = (j / P.sol.length * 1.4).toFixed(2) + "s"; g.classList.add("won-st"); }); // 金の線が通るのに合わせて駅が順に光る
   buzz([15, 60, 15, 60, 30]);
   const r = s.runs[MODE], last = r && r.i >= r.tags.length;
+  if ($("quit")) $("quit").hidden = true;
   $("after").innerHTML = `<div class="verdict" role="status" data-a11y-say><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p>${achLine(newA)}<button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
   $("next").onclick = play;
   setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "nearest" }), 50);
@@ -625,6 +641,7 @@ function win() {
 function finish() {
   const s = load(), run = s.runs[MODE];
   if (!run) return home();
+  if (run.mode === "e") return endFinish(run);
   let first = false, newA = [];
   save((s2) => {
     first = bank(s2, run); newA = claimAch(s2);
@@ -633,6 +650,23 @@ function finish() {
   });
   if (run.mode === "p") return practiceMenu();
   result(run.mode, run.date, first, newA);
+}
+// とことんの終わり：開通させた路線の数を自己ベストと比べる（他の人との順位は出さない・シェアしない）
+function endFinish(run) {
+  const n = run.i; let prev = 0, newA = [];
+  save((s2) => { prev = s2.ebest || 0; s2.ebest = Math.max(prev, n); const c = s2.runs.e; if (c && c.id === run.id) s2.runs.e = null; newA = claimAch(s2); });
+  const s = load(), best = n > prev && n > 0, used = run.hints.reduce((a, h) => a + h, 0);
+  app.innerHTML = `
+    <header><button class="icon" id="back" aria-label="ホームへ">←</button><h1>路線図ひと筆<small>とことん</small></h1><span></span></header>
+    <p class="big" id="eres">${n}路線 開通</p>
+    <p class="note" id="ebest">${best ? "🎉 自己ベスト更新！" : s.ebest ? `自己ベスト ${s.ebest}路線${s.ebest >= n ? `（あと${s.ebest - n + 1}路線で更新）` : ""}` : "1路線開通すると自己ベストが残ります"}</p>
+    ${n ? `<p class="note">${sizeOf(run.tags[n - 1]).name}まで進みました・ヒント${used}回</p>` : ""}
+    ${achLine(newA)}
+    <button class="main" id="go-e">もう一度とことん</button>
+    <div class="row"><button class="sub" id="go-p">練習する</button><button class="sub" id="go-cal">📅 乗車記録</button></div>
+    <p class="note"><a href="${FEEDBACK}" target="_blank" rel="noopener">感想を送る</a></p>`;
+  $("back").onclick = home; $("go-e").onclick = () => startRun("e"); $("go-p").onclick = practiceMenu; $("go-cal").onclick = () => calView();
+  window.scrollTo(0, 0);
 }
 function untilNext() { const n = jstNow(), ms = 864e5 - (n.getTime() % 864e5); return `${Math.floor(ms / 36e5)}時間${Math.floor((ms % 36e5) / 6e4)}分`; }
 function shareText(mode, k, hs) {
@@ -654,12 +688,13 @@ function result(mode, k, first, newA) {
     <button class="main" id="share">結果をシェア</button>
     <div class="shares"><a id="toX" target="_blank" rel="noopener">Xで投稿</a><a id="toLine" target="_blank" rel="noopener">LINEで送る</a><button id="copy">コピー</button></div>
     <p class="note">次の路線まで あと <b>${untilNext()}</b></p>
+    <button class="main" id="go-e">続けて遊ぶ：とことん${s.ebest ? `（ベスト ${s.ebest}路線）` : ""}</button>
     ${mode === "d" && k === todayKey() && !s.hdays[k] ? `<button class="main alt" id="go-h">上級：特急に乗る</button>` : ""}
     <div class="row"><button class="sub" id="go-p">練習する</button><button class="sub" id="go-cal">📅 乗車記録</button></div>
     ${showKofi ? `<p class="note kofi">楽しめたら、<a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi でコーヒー1杯の応援</a>をもらえると、新しい路線とゲームづくりの励みになります（任意・遊ぶのはずっと無料）。</p>` : ""}
     <p class="note"><a href="${FEEDBACK}" target="_blank" rel="noopener" id="fb">感想を送る</a></p>`;
   $("back").onclick = home;
-  $("go-p").onclick = practiceMenu; $("go-cal").onclick = () => calView();
+  $("go-p").onclick = practiceMenu; $("go-cal").onclick = () => calView(); $("go-e").onclick = () => startRun("e");
   if ($("go-h")) $("go-h").onclick = () => (k === todayKey() ? startRun("h") : home()); // 画面を開いたまま0時を過ぎたら、翌日の上級は始めない
   const withUrl = text + "\n" + SITE;
   $("toX").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(withUrl);
@@ -705,7 +740,7 @@ function calView(ym) {
   bindFooter(); window.scrollTo(0, 0);
 }
 
-window.__rh = { mode: () => MODE, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
+window.__rh = { mode: () => MODE, endlessList, ELIFE, ERAMP, sizeOf, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
