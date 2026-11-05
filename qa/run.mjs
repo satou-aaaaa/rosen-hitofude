@@ -48,7 +48,7 @@ check("同じ回の途中経過は、全体の時刻でなく進み具合（解�
 const ext = [...html.matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]).filter((u) => !/^https:\/\/fonts\.googleapis\.com(\/|$)|^https:\/\/ko-fi\.com\/satouaaaaa$/.test(u));
 check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない", ext.length === 0, ext.join(","));
 check("CSP で通信先を自分だけにしている", /connect-src 'self'/.test(html) && !/connect-src[^;"]*https/.test(html));
-check("Math.random は練習の種だけ（今日の3路線・特急は日付の乱数）", (html.match(/Math\.random/g) || []).length === 1 && !/Math\.random/.test(readFileSync(path.join(root, "gen.js"), "utf8")));
+check("Math.random は練習・とことんの種だけ（今日の3路線・特急は日付の乱数）", (html.match(/Math\.random/g) || []).length === 3 && !/Math\.random/.test(readFileSync(path.join(root, "gen.js"), "utf8")));
 check("画面にお笑いの言葉を入れない（本物っぽく）", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん|（うそ）/.test(html));
 { const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
@@ -200,6 +200,49 @@ try {
   check("古いタブで開通しても数えず、今の路線（別の画面で変わった方）を出し直す", (await page.evaluate(() => window.__rh.load().cnt)) === cnt0 && (await page.locator(".verdict").count()) === 0);
   await page.close();
 
+  { // とことん：次々に出る・各駅→快速→急行→特急・ヒントは🎫を使う・降りると自己ベスト（2026-11-05 satou さん「一日で遊べる量が少なすぎる」）
+    const pe = await newPage(); await pe.click("#howto-ok");
+    const solveE = async () => { await pe.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); }); await pe.click("#next"); };
+    check("とことんの並び（300回）：各駅3→快速5→急行10→特急42、同じ種は出ない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(); if (L.length !== 60 || new Set(L.map((t) => t.split(":")[2])).size !== 60) return false; if (!L.every((t, i) => t.split(":")[1] === String(i < 3 ? 0 : i < 8 ? 1 : i < 18 ? 2 : 3))) return false; } return true; }));
+    check("とことんの路線は大きさどおりに作れて、答えが1本の道（各大きさ5本ずつ）", await pe.evaluate(() => { const g = window.__rh, L = g.endlessList(); return [0, 3, 8, 18].every((st) => L.slice(st, st + 5).every((t) => { const P = g.puzzle(t), z = g.sizeOf(t); return P.pts.length === z.W * z.H - z.holes && P.sol.length === P.pts.length && P.sol[0] === P.s && P.sol[P.sol.length - 1] === P.e; })); }));
+    check("ホームに「とことん」の大きなボタン", (await pe.locator("#go-e.main").count()) === 1);
+    await pe.click("#go-e");
+    for (let j = 0; j < 3; j++) await solveE();
+    check("とことんは何路線目かを出し、🎫が3枚・4路線目から快速", (await pe.textContent("header")).includes("4路線目") && (await pe.textContent("header")).includes("快速") && (await pe.evaluate(() => window.__rh.load().runs.e.life)) === 3 && (await pe.textContent("#quit")).includes("3路線で終える"));
+    await pe.click("#hint");
+    check("とことんのヒントは🎫を1枚使う", (await pe.evaluate(() => window.__rh.load().runs.e.life)) === 2 && (await pe.textContent("#life")).split("🎫").length - 1 === 3);
+    await pe.click("#hint"); await pe.click("#back");
+    check("ホームのボタンは「とことんの続きから」", (await pe.textContent("#go-e")).includes("続きから（4路線目）"));
+    await pe.click("#go-e");
+    check("とことんは途中で閉じても続きから（4路線目・🎫1・ヒント2回のまま）", (await pe.textContent("header")).includes("4路線目") && (await pe.evaluate(() => window.__rh.load().runs.e.life)) === 1 && (await pe.evaluate(() => window.__rh.load().runs.e.curHints)) === 2);
+    await pe.click("#quit");
+    check("降りると開通の数と自己ベスト更新が出て、記録に残る（今日の記録・連続には入らない・シェアは出さない）", (await pe.textContent("#eres")).includes("3路線") && (await pe.textContent("#ebest")).includes("自己ベスト更新") && (await pe.locator("#share").count()) === 0 && (await pe.evaluate(() => { const s = window.__rh.load(); return s.ebest === 3 && !s.runs.e && Object.keys(s.days).length === 0 && s.cnt === 3; })));
+    await pe.click("#go-e"); await pe.click("#quit");
+    check("ベストに届かないと、ベストと「あと何路線で更新」を出し、ベストは下げない", (await pe.textContent("#ebest")).includes("あと4路線で更新") && (await pe.evaluate(() => window.__rh.load().ebest)) === 3);
+    await pe.click("#go-e");
+    await pe.evaluate(() => { const k = "rosen-v1", s = JSON.parse(localStorage.getItem(k)); s.runs.e.life = 0; localStorage.setItem(k, JSON.stringify(s)); }); await pe.click("#back"); await pe.click("#go-e");
+    check("🎫が無いとヒントは押せない", await pe.locator("#hint").isDisabled());
+    await pe.click("#quit");
+    check("終わりの画面に「もう一度とことん」", (await pe.locator("#go-e.main").count()) === 1 && (await pe.textContent("#go-e")).includes("もう一度"));
+    check("保存に失敗したあとの統合でも、自己ベストは大きいほうを残す", await pe.evaluate((K) => { const g = window.__rh, s0 = g.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 9, ebest: 2 })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 5, ebest: 7 }))); const r = g.load().ebest; mem = null; return r === 7; }, "rosen-v1"));
+    await pe.close(); }
+  { // 今日の3路線の結果に「続けて遊ぶ：とことん」
+    const pr = await newPage(); await pr.click("#howto-ok"); await pr.click("#go-d");
+    for (let j = 0; j < 3; j++) { await pr.evaluate(() => { const g = window.__rh, { P } = g.state(); for (const i of P.sol.slice(1)) g.tryStep(i); }); await pr.click("#next"); }
+    check("今日の3路線の結果に「続けて遊ぶ：とことん」の大きなボタン", (await pr.locator("#go-e.main").count()) === 1 && (await pr.textContent("#go-e")).includes("とことん"));
+    await pr.click("#go-e");
+    check("結果の画面からとことんを始められる", (await pr.evaluate(() => window.__rh.mode())) === "e" && (await pr.textContent("header")).includes("1路線目"));
+    await pr.close(); }
+  for (const w of [320, 390]) { // とことんの遊ぶ画面（特急も）・終わりの画面もスマホ幅で崩れない
+    const pv = await newPage(w, 700); await pv.click("#howto-ok");
+    const look = () => pv.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.id || e.textContent.trim().slice(0, 6)) }));
+    const h0 = await look(); await pv.click("#go-e"); const a = await look();
+    await pv.evaluate(() => { const k = "rosen-v1", s = JSON.parse(localStorage.getItem(k)); s.runs.e.i = 20; localStorage.setItem(k, JSON.stringify(s)); }); await pv.click("#back"); await pv.click("#go-e"); const b = await look();
+    const hd = await pv.evaluate(() => document.querySelector("header").getBoundingClientRect().height);
+    const gap = await pv.evaluate(() => { const svg = document.querySelector("#map svg"); return svg.getBoundingClientRect().width / svg.viewBox.baseVal.width * 60; });
+    await pv.click("#quit"); const c = await look();
+    check(`幅${w}px：ホーム・とことんの遊ぶ画面（特急も）・終わりの画面は横にはみ出さず、押せる所は高さ44px以上・駅の間は40px以上`, [h0, a, b, c].every((x) => !x.over && x.small.length === 0) && hd < 70 && gap >= 40 && (await pv.textContent("#eres")).includes("20路線"), [h0, a, b, c].flatMap((x) => x.small).join(",") + ` 見出し${hd}px 駅の間${gap.toFixed(0)}px`);
+    await pv.close(); }
   // スマホ幅：はみ出さない・押せる所は44px以上・駅の押せる広さ
   for (const w of [320, 390]) {
     const p3 = await newPage(w, 700); const fb2 = await p3.evaluate(() => { const a = document.querySelector("#howto #fb2"); return a ? a.getBoundingClientRect().height : 0; }); check(`幅${w}px：遊び方の「感想を送る」も高さ44px以上`, fb2 >= 44, `${fb2}px`); await p3.click("#howto-ok");
