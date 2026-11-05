@@ -152,7 +152,7 @@ try {
     check("切り離された駅のかたまりも、もう行けない駅として全部知らせる", r.okWalk && JSON.stringify(r.lost) === "[2,3,5,6,7,9,10,11,13,14,18]", JSON.stringify(r));
   }
   for (const i of s1.slice(3)) await tapStation(page, i);
-  check("全部の駅を通って終点に着くと開通・ヒント1回で★2", (await page.textContent(".verdict")).includes("開通") && (await page.locator(".verdict .stars").textContent()).replace(/[^★]/g, "").length === 3 && (await page.locator(".verdict .stars .off").textContent()).length === 1);
+  check("全部の駅を通って終点に着くと開通・ヒント1回で★2（取れなかった星は白抜きの☆）", (await page.textContent(".verdict")).includes("開通") && (await page.locator(".verdict .stars").textContent()).replace(/[^★]/g, "").length === 2 && (await page.locator(".verdict .stars .off").textContent()) === "☆");
   check("開通したあとは駅を押しても動かない", await page.isDisabled("#undo"));
   check("はじめて開通すると、開通の画面に小さく「🏅 実績：はじめての開通」", (await page.locator(".verdict .achnew").textContent()).includes("はじめての開通"));
   check("開通すると、通った順に駅が光る（解けた手ごたえ）", (await page.locator(".st.won-st").count()) === s1.length);
@@ -365,6 +365,44 @@ try {
       localStorage.setItem(K, JSON.stringify(s0)); return ok; }, "rosen-v1"));
     check("時計が戻っても、保存の時刻 t は前より大きくなる", await pn.evaluate((K) => { const s0 = JSON.parse(localStorage.getItem(K)); const far = Date.now() + 1e9; localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: far }))); save(() => {}); return JSON.parse(localStorage.getItem(K)).t > far; }, "rosen-v1"));
     await pn.close(); }
+  { // 色だけで分けない・キーボードだけで遊べる・読み上げに知らせる（shared-workflows routines/game-dev.md「だれでも遊べるように」A1・A6・A7・A8）
+    const pk = await newPage(); await pk.click("#howto-ok"); await pk.click("#go-d");
+    const S = await sol(pk);
+    const a = await pk.evaluate(() => { const g = [...document.querySelectorAll("#map .st")]; return { n: g.length, btn: g.every((e) => e.getAttribute("role") === "button" && e.getAttribute("tabindex") === "0" && /・(いまいる駅|まだの駅|通った駅|もう行けない駅)・となり /.test(e.getAttribute("aria-label") || "")), role: document.querySelector("#map svg").getAttribute("role"), live: document.querySelector("#live")?.getAttribute("aria-live"), dots: document.querySelector(".dots")?.getAttribute("aria-label") || "", hOn: document.querySelector(".dots i.on").getBoundingClientRect().height, hNext: document.querySelector(".dots i:not(.on):not(.done)").getBoundingClientRect().height, nextBg: getComputedStyle(document.querySelector(".dots i:not(.on):not(.done)")).backgroundColor }; });
+    check("駅は全部キーボードで選べるボタン（role=button・tabindex）で、名前と「いまいる・通った・まだ・もう行けない」・となりの駅を読み上げる", a.n > 0 && a.btn && a.role === "group", JSON.stringify(a).slice(0, 200));
+    check("進み具合の点は色だけで分けない（いまの路線は高く・まだの路線は中が空・数を文字でも持つ）", a.hOn > a.hNext && /rgba\(0, 0, 0, 0\)|transparent/.test(a.nextBg) && a.dots === "3路線のうち1つ目", JSON.stringify(a));
+    check("読み上げソフトへの知らせの場所（aria-live）がある", a.live === "polite");
+    await pk.focus(`#st${S[1]}`); await pk.keyboard.press("Enter");
+    check("キーボードの Enter で、選んだ駅へ進める（なぞらなくても遊べる）", (await cur(pk)).length === 2);
+    await pk.waitForTimeout(100);
+    check("進むと、駅名とのこりの駅の数を読み上げの場所に出す", (await pk.textContent("#live")).includes("のこり"), await pk.textContent("#live"));
+    check("通った駅・いまいる駅は、読み上げの名前でも分かる", /いまいる駅/.test(await pk.getAttribute(`#st${S[1]}`, "aria-label")) && /通った駅/.test(await pk.getAttribute(`#st${S[0]}`, "aria-label")));
+    const far2 = await pk.evaluate(() => { const { P, path } = window.__rh.state(), c = path[path.length - 1]; return P.pts.findIndex((_, i) => !path.includes(i) && !P.adj[c].includes(i)); });
+    await pk.focus(`#st${far2}`); await pk.keyboard.press(" "); await pk.waitForTimeout(100);
+    check("つながっていない駅をスペースで押すと進まず、「線路がつながっていません」と文字で知らせる", (await cur(pk)).length === 2 && (await pk.textContent("#live")).includes("つながっていません"));
+    const mv = await pk.evaluate(() => { const { P } = window.__rh.state(); const i = P.pts.findIndex(([x], j) => P.pts.some(([qx, qy], k) => k !== j && qx > x && qy === P.pts[j][1])); document.getElementById("st" + i).focus(); return { i, x: P.pts[i][0] }; });
+    await pk.keyboard.press("ArrowRight");
+    const mv2 = await pk.evaluate(() => { const e = document.activeElement; return e && e.dataset ? { i: +e.dataset.i, x: window.__rh.state().P.pts[+e.dataset.i][0] } : null; });
+    check("矢印のキーで、となりの駅へ選ぶ所を動かせる", mv2 && mv2.i !== mv.i && mv2.x > mv.x, JSON.stringify([mv, mv2]));
+    await pk.click("#hint"); await pk.waitForTimeout(100);
+    const nx = await pk.evaluate(() => { const { P, path } = window.__rh.state(); return P.names[P.sol[path.length]]; });
+    check("ヒントの「光った駅」は駅名でも知らせる（光るのが見えにくい人にも）", (await pk.textContent("#live")).includes(nx) && (await pk.textContent(".toast")).includes(nx));
+    await pk.close();
+    // 色の見分けを助ける・動きを減らす設定
+    const pv = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await pv.addInitScript(() => { try { localStorage.setItem("a11y-v1", JSON.stringify({ cvd: true, calm: true })); } catch (e) {} window.__vib = 0; try { Object.defineProperty(navigator, "vibrate", { value: () => { window.__vib++; return true; }, configurable: true }); } catch (e) {} });
+    pv.on("pageerror", (e) => errors.push(e.message));
+    await pv.goto(url); await pv.evaluate(() => { const k = Object.keys(localStorage).filter((x) => x !== "a11y-v1"); k.forEach((x) => localStorage.removeItem(x)); }); await pv.reload();
+    await pv.click("#howto-ok"); await pv.click("#go-d");
+    const Sv = await sol(pv);
+    const cv = await pv.evaluate(() => { const ok = ["#D55E00", "#0072B2", "#009E73", "#E69F00", "#CC79A7", "#56B4E9", "#B8A000", "#8C5A2B", "#7F3C8D"].map((h) => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`); const ls = [...document.querySelectorAll("#map .ln")]; return ls.length > 0 && ls.every((l) => ok.includes(getComputedStyle(l).stroke)); });
+    check("色の見分けを助ける設定で、路線の色がカラーユニバーサルデザインの組に替わる", cv);
+    await pv.focus(`#st${Sv[1]}`); await pv.keyboard.press("Enter");
+    const farv = await pv.evaluate(() => { const { P, path } = window.__rh.state(), c = path[path.length - 1]; return P.pts.findIndex((_, i) => !path.includes(i) && !P.adj[c].includes(i)); });
+    await pv.focus(`#st${farv}`); await pv.keyboard.press("Enter"); await pv.waitForTimeout(50);
+    check("動きを減らす設定では振動させず、つながっていない駅はゆれの代わりに文字（toast）で知らせる", (await pv.evaluate(() => window.__vib)) === 0 && (await cur(pv)).length === 2 && (await pv.locator(".toast").count()) === 1 && (await pv.textContent(".toast")).includes("つながっていません"));
+    await pv.close();
+  }
   { // 同じ日はどのブラウザでも同じ問題：sort の比較の中で乱数を引かない（引く回数がブラウザで変わる）
     const src = ["index.html", ...["gen.js", "data.js"].filter((f) => existsSync(path.join(root, f)))].map((f) => readFileSync(path.join(root, f), "utf8")).join("\n");
     const bad = src.match(/\.sort\(\s*\([^)]*\)\s*=>[^\n;]*\b(R|rng|rand|Math\.random)\s*\(/g) || [];
@@ -392,6 +430,11 @@ try {
   await browser.close();
 }
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));
+{ // 見やすさ・読みやすさ・偏り（shared-workflows template/qa/a11y.mjs の写し。routines/game-dev.md「だれでも遊べるように」）
+  const { spawnSync } = await import("node:child_process");
+  const a = spawnSync(process.execPath, [path.join(root, "qa", "a11y.mjs")], { encoding: "utf8", env: process.env });
+  check("見やすさ・読みやすさの検査（qa/a11y.mjs。中身は qa-report/a11y.md）", a.status === 0, (a.stdout.match(/^- ❌.*$/gm) || []).join(" / ") || (a.status ? a.stderr.slice(-300) : ""));
+}
 
 const ng = results.filter((r) => !r.ok);
 const md = `# 路線図ひと筆 QA\n\n${results.map((r) => `- ${r.ok ? "✅" : "❌"} ${r.name}${r.detail ? `（${r.detail}）` : ""}`).join("\n")}\n\n${ng.length ? `❌ ${ng.length}件` : `✅ ${results.length}項目すべて通過`}\n`;

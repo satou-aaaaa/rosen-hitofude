@@ -68,13 +68,13 @@ button.sub:disabled{opacity:.4;cursor:default}
 .status .bar{flex:1;height:5px;background:var(--line);border-radius:3px;margin:0 10px;overflow:hidden}
 .status .bar i{display:block;height:100%;background:var(--accent);transition:width .2s}
 .dots{display:flex;gap:6px;flex:1;max-width:140px}
-.dots i{flex:1;height:6px;border-radius:3px;background:var(--line)}
-.dots i.on{background:var(--gold)}.dots i.done{background:var(--accent)}
+.dots i{flex:1;height:6px;border-radius:3px;background:transparent;border:1.5px solid var(--ink2);box-sizing:border-box}
+.dots i.on{background:var(--gold);border:2px solid #7a5a00;height:10px}.dots i.done{background:var(--accent);border-color:var(--accent)} /* 色だけで分けない：まだは中が空・いまは太く高い・済みは塗る */
 .verdict{background:var(--card);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 6px 0 #00000014;animation:up .35s ease-out;text-align:center;border:2px solid var(--gold)}
 @keyframes up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
 .verdict b{font-size:24px}
 .stars{color:var(--gold);letter-spacing:.1em;font-size:22px}
-.stars .off{color:#0000001f}
+.stars .off{color:#8b8f94}
 .hero svg{width:100%;height:auto;display:block}
 .title{font-weight:800;font-size:38px;letter-spacing:.12em;text-align:center;margin:4px 0 0}
 .lead{text-align:center;color:var(--ink2);margin:0;font-size:14px;line-height:1.7}
@@ -86,7 +86,7 @@ button.sub:disabled{opacity:.4;cursor:default}
 .stamps{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .stamps span{aspect-ratio:1;border-radius:50%;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:11px;color:var(--ink2)}
 .stamps span.got{border:2px solid var(--end);color:var(--end);font-weight:800;transform:rotate(-12deg);background:#d4372c0d}
-.stamps span.got.late{opacity:.55;border-style:dashed;transform:none}
+.stamps span.got.late{border-style:dashed;transform:none;background:none}
 .stamps span.today{outline:2px solid var(--gold);outline-offset:1px}
 .share{background:var(--card);border-radius:12px;padding:12px;white-space:pre-line;font-size:15px;line-height:1.6;text-align:center;border:1px solid var(--line)}
 .shares{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
@@ -113,6 +113,17 @@ footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:cente
 .st.nope circle{animation:nope .3s ease-in-out}
 @keyframes nope{25%{transform:translateX(-3px);stroke:#d4372c}75%{transform:translateX(3px);stroke:#d4372c}}
 .st.lost circle{stroke:var(--end);stroke-dasharray:4 3}
+.st[tabindex]{cursor:pointer}
+.st .ring{fill:none;stroke:none;stroke-width:3.5;pointer-events:none}
+.st:focus-visible .ring{stroke:#1a5fd0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+/* 色の見分けを助ける：路線の色をカラーユニバーサルデザインの組に替え、いまの道・もう行けない駅・ヒントの駅を形でも強める（路線の色は飾りで、遊びの答えには関わらない） */
+html.a11y-cvd .ln.c0{stroke:#D55E00}html.a11y-cvd .ln.c1{stroke:#0072B2}html.a11y-cvd .ln.c2{stroke:#009E73}html.a11y-cvd .ln.c3{stroke:#E69F00}html.a11y-cvd .ln.c4{stroke:#CC79A7}html.a11y-cvd .ln.c5{stroke:#56B4E9}html.a11y-cvd .ln.c6{stroke:#B8A000}html.a11y-cvd .ln.c7{stroke:#8C5A2B}html.a11y-cvd .ln.c8{stroke:#7F3C8D}
+html.a11y-cvd #route{stroke:#000;stroke-width:7;stroke-dasharray:none}
+html.a11y-cvd .st.lost circle{stroke:#D55E00;stroke-width:4;stroke-dasharray:3 3}
+html.a11y-cvd .st.hintst circle{stroke:#0072B2;stroke-width:5}
+html.a11y-cvd .dots i.on{background:#E69F00}html.a11y-cvd .dots i.done{background:#0072B2;border-color:#0072B2}
+html.a11y-cvd .stars{color:#B86E00}
 .warn{background:#fdecea;border:1px solid var(--end);color:#8f1d15;border-radius:12px;padding:8px 12px;font-size:14px;text-align:center;font-weight:700}
 .warn[hidden]{display:none}
 .won-st circle{animation:lit .5s ease-out both}
@@ -138,7 +149,7 @@ footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:cente
 .cal .wd{font-size:11px;color:var(--ink2);text-align:center}
 .cal .c{min-height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--ink2);background:var(--card);border:1px solid var(--line);box-sizing:border-box;position:relative;line-height:1.1}
 .cal .c.e{background:none;border:none}
-.cal .c.out{opacity:.35}
+.cal .c.out{background:none;border:1px dotted var(--line);color:var(--ink2)}
 .cal .c i{font-style:normal;font-size:10px;letter-spacing:-.05em}
 .cal .c.d1{background:#0a7a5533;color:var(--ink)}.cal .c.d2{background:#0a7a5577;color:var(--ink)}.cal .c.d3{background:var(--accent);color:#fff;border-color:var(--accent)}
 .cal .c.late{background:#0a7a5514;border:1.5px dashed var(--accent);color:var(--ink)}
@@ -156,18 +167,161 @@ footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:cente
 /* all:unset のボタン（カレンダーのます目など）でも枠が消えないよう、いちばん最後に強く書く（2026-11-04 CodeRabbit） */
 :is(button,a):focus-visible{outline:3px solid var(--gold)!important;outline-offset:2px}
 </style>
+<!-- a11y:begin 見やすさの設定 v3（shared-workflows template/a11y/a11y.html の写し。ここでは直さず、ひな形を直して全部のゲームへ写す。drift-check と qa/a11y.mjs が同じ中身か見る） -->
+<style id="a11y-css">
+/* だれでも：キーボードで選んだ所に太い枠（WCAG 2.4.7・2.4.13） */
+:is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #1a5fd0!important;outline-offset:2px!important;box-shadow:0 0 0 5px #fff!important}
+/* 読みやすい文字：UD フォント・行間 1.7・字間を少し広げる・斜体にしない（BDA Dyslexia Style Guide） */
+html.a11y-read body{line-height:1.7}
+html.a11y-read body,html.a11y-read body :where(*:not(svg):not(svg *):not([data-a11y-keepfont]):not([data-a11y-keepfont] *)){font-family:"BIZ UDPGothic","BIZ UDGothic","UD デジタル 教科書体 NK-R","UD Digi Kyokasho NK-R","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif!important;font-style:normal!important}
+html.a11y-read :is(p,li,dd,dt,blockquote,[data-a11y-say]){line-height:1.8!important;letter-spacing:.04em!important}
+html.a11y-read em,html.a11y-read i:not([aria-hidden]){font-style:normal!important;font-weight:700}
+/* 動きを減らす：揺れ・点滅・すべる動きを止める（WCAG 2.3.3。端末の「視差効果を減らす」でも自動で入る） */
+html.a11y-calm *,html.a11y-calm *::before,html.a11y-calm *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
+/* 色の見分けを助ける：ゲームごとの形・模様は各ゲームが html.a11y-cvd の下に書く。ここではリンクに下線 */
+html.a11y-cvd a{text-decoration:underline!important}
+/* ふりがな：ゲームが <ruby class="a11y-rb"> を置いた所だけ。選んだときだけ出す */
+html:not(.a11y-ruby) ruby.a11y-rb>rt{display:none}
+/* 設定の画面（どのゲームでも同じ見た目・同じ濃さ。白地に黒で 15:1） */
+.a11y-dlg{max-width:min(420px,calc(100vw - 32px));width:100%;box-sizing:border-box;border:2px solid #1d2320;border-radius:14px;padding:18px 16px 14px;background:#fffdf8;color:#1d2320;font:500 16px/1.6 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;letter-spacing:0}
+.a11y-dlg::backdrop{background:#0008}
+.a11y-dlg h2{font-size:19px;margin:0 0 4px;font-weight:700;line-height:1.4}
+.a11y-dlg p{margin:4px 0 10px;font-size:14px;color:#3d4440;line-height:1.6}
+.a11y-dlg label{display:flex;gap:12px;align-items:center;min-height:48px;padding:6px 4px;border-top:1px solid #1d232022;cursor:pointer;line-height:1.4}
+.a11y-dlg label small{display:block;font-size:13px;color:#3d4440}
+.a11y-dlg input[type=checkbox]{width:26px;height:26px;flex:none;accent-color:#1a5fd0;margin:0}
+.a11y-dlg .a11y-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.a11y-dlg button,.a11y-btn,.a11y-saybtn{min-height:44px;min-width:44px;border-radius:10px;border:2px solid #1d2320;background:#fff;color:#1d2320;font:700 15px/1.2 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;padding:0 14px;cursor:pointer;letter-spacing:0}
+.a11y-dlg button.a11y-ok{background:#1d2320;color:#fff}
+.a11y-btn.a11y-float{position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000}
+/* 読み上げボタンが、いちばん下のボタン・リンクにかぶらないよう下をあける */
+html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+.a11y-saybtn{position:fixed;right:max(8px,env(safe-area-inset-right,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000;box-shadow:0 2px 8px #0003}
+.a11y-saybtn[hidden],.a11y-dlg [hidden]{display:none!important}
+.a11y-note{font-size:13px!important}
+</style>
+<script id="a11y-script">
+/* 見やすさの設定（色覚・ディスレクシア・弱視・動きに弱い人のため）。外へは何も送らない。
+   設定は localStorage の a11y-v1 に置く。同じサイト（satou-aaaaa.github.io）のゲームは同じ設定を使う。
+   ゲームの側でできること：
+   - 設定を開くボタンに data-a11y-open を付ける（無ければ左下に「Aa」のボタンを出す）
+   - 読み上げる文に data-a11y-say を付ける（問題文・知らせなど）
+   - 色の見分けを助ける形・模様は html.a11y-cvd の下に CSS で書く。JS では A11y.on('cvd')
+   - 揺れ・すべる動きを JS で動かすときは、A11y.on('calm') なら止める
+   - 設定が変わると document に a11ychange が届く
+   - 設定の印は html の class「a11y-<設定の名前>」（a11y-read など）。部品の class はこれと重ならない名前にする（2026-11-05 a11y-say がボタンとぶつかった） */
+(() => {
+  const KEY = "a11y-v1";
+  const root = document.documentElement;
+  const OPTS = [
+    ["read", "読みやすい文字", "UD フォント・行間と字間を広く"],
+    ["cvd", "色の見分けを助ける", "色に形・模様・記号を足す"],
+    ["calm", "動きを減らす", "揺れ・点滅・すべる動きを止める"],
+    ["say", "読み上げのボタンを出す", "問題や知らせを声で読む（端末の中の声だけ）"],
+    ["ruby", "ふりがなを出す", "むずかしい漢字に読みを付ける"],
+  ];
+  const media = (q) => { try { return matchMedia(q).matches; } catch { return false; } };
+  let S = {};
+  try { S = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { S = {}; }
+  // 決めていないものは端末の設定に合わせる（視差効果を減らす → 動きを減らす）
+  const on = (k) => (k in S ? !!S[k] : k === "calm" ? media("(prefers-reduced-motion: reduce)") : false);
+  let fontLoaded = false;
+  const loadFont = () => {
+    if (fontLoaded) return; fontLoaded = true;
+    // Google Fonts を許しているページだけ取りに行く（許していなければ端末にある UD フォントを使う）
+    const csp = (document.querySelector('meta[http-equiv="Content-Security-Policy"]') || {}).content || "";
+    if (csp && !/fonts\.googleapis\.com/.test(csp)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap";
+    document.head.appendChild(l);
+  };
+  const apply = () => {
+    for (const [k] of OPTS) root.classList.toggle("a11y-" + k, on(k));
+    if (on("read")) loadFont();
+    if (sayBtn) sayBtn.hidden = !on("say");
+    if (!on("say")) stop();
+  };
+  const set = (k, v) => {
+    S[k] = !!v;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* 保存できなくても今の画面には効かせる */ }
+    apply();
+    document.dispatchEvent(new CustomEvent("a11ychange", { detail: { key: k, on: !!v } }));
+  };
+
+  // 読み上げ：端末の中の日本語の声だけを使う（外へ文字を送る声は使わない）
+  const voice = () => { try { return speechSynthesis.getVoices().find((v) => /^ja/i.test(v.lang) && v.localService) || null; } catch { return null; } };
+  const stop = () => { try { speechSynthesis.cancel(); } catch { /* 無い端末 */ } };
+  const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && !el.closest("[hidden],[aria-hidden=true],[inert]"); };
+  const sayText = () => [...document.querySelectorAll("[data-a11y-say]")].filter(visible).map((el) => (el.getAttribute("aria-label") || el.innerText || "").trim()).filter(Boolean).join("。");
+  const say = (text) => {
+    const v = voice();
+    if (!v || !text) return false;
+    stop();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+    u.voice = v; u.lang = v.lang; u.rate = 0.95;
+    speechSynthesis.speak(u);
+    return true;
+  };
+
+  let dlg = null, sayBtn = null, lastFocus = null;
+  const build = () => {
+    dlg = document.createElement("dialog");
+    dlg.className = "a11y-dlg";
+    dlg.setAttribute("aria-labelledby", "a11y-h");
+    const hasRuby = !!document.querySelector("ruby.a11y-rb");
+    dlg.innerHTML = `<h2 id="a11y-h">見やすさ・読みやすさ</h2><p>ほかのゲームにも同じ設定が使われます。文字は2本の指で広げると大きくなります。</p>` +
+      OPTS.filter(([k]) => k !== "ruby" || hasRuby).map(([k, n, d]) => `<label><input type="checkbox" data-k="${k}"><span>${n}<small>${d}</small></span></label>`).join("") +
+      `<p class="a11y-note" id="a11y-novoice" hidden>この端末には、外へ送らずに読める日本語の声がありません。</p><div class="a11y-row"><button type="button" class="a11y-ok" data-a11y-close>閉じる</button></div>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener("change", (e) => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (!k) return;
+      set(k, e.target.checked);
+      if (k === "say") dlg.querySelector("#a11y-novoice").hidden = !(e.target.checked && !voice());
+    });
+    dlg.querySelector("[data-a11y-close]").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("close", () => { if (lastFocus && lastFocus.focus) lastFocus.focus(); });
+    sayBtn = document.createElement("button");
+    sayBtn.type = "button"; sayBtn.className = "a11y-saybtn"; sayBtn.textContent = "🔊 読む"; sayBtn.setAttribute("aria-label", "画面の問題を読み上げる");
+    sayBtn.addEventListener("click", () => {
+      try { if (speechSynthesis.speaking) return stop(); } catch { /* 無い端末 */ }
+      if (!say(sayText())) open();
+    });
+    document.body.appendChild(sayBtn);
+    if (!document.querySelector("[data-a11y-open]")) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "a11y-btn a11y-float"; b.textContent = "Aa"; b.setAttribute("data-a11y-open", ""); b.setAttribute("aria-label", "見やすさの設定");
+      document.body.appendChild(b);
+    }
+    document.addEventListener("click", (e) => { const t = e.target.closest && e.target.closest("[data-a11y-open]"); if (t) { e.preventDefault(); open(); } });
+    apply();
+  };
+  const open = () => {
+    if (!dlg) build();
+    lastFocus = document.activeElement;
+    for (const c of dlg.querySelectorAll("input[data-k]")) c.checked = on(c.dataset.k);
+    dlg.querySelector("#a11y-novoice").hidden = !(on("say") && !voice());
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  };
+  apply();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
+  window.A11y = { on, set, open, say, stop };
+})();
+</script>
+<!-- a11y:end -->
 </head>
 <body>
 <div class="wrap" id="app"></div>
+<p class="sr" id="live" aria-live="polite"></p>
 <dialog id="howto" aria-labelledby="howto-t">
   <h2 id="howto-t">遊び方</h2>
   <ol>
-    <li><b style="color:var(--accent)">始</b>（始発）から、線路でつながった駅を順に押すか、なぞります。</li>
+    <li><b style="color:var(--accent)">始</b>（始発）から、線路でつながった駅を順に押すか、なぞります（キーボードは矢印で駅を選んで Enter）。</li>
     <li>全部の駅を1回ずつ通って、<b style="color:var(--end)">終</b>（終点）に着けば開通。</li>
     <li>通った駅を押すと、そこまで戻れます。</li>
   </ol>
   <p>答えはどの路線図も1つだけ。時間制限はありません。今日の3路線はだれでも同じで、練習は何度でも。</p>
-  <p><a id="fb2" target="_blank" rel="noopener">感想を送る</a></p>
+  <p><a href="#" data-a11y-open>見やすさの設定</a>　<a id="fb2" target="_blank" rel="noopener">感想を送る</a></p>
   <button class="main" id="howto-ok" style="width:100%">わかった</button>
 </dialog>
 <script src="gen.js"></script>
@@ -229,7 +383,7 @@ function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getI
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
-const starStr = (s) => `<span class="stars" aria-label="星${s}つ">${"★".repeat(s)}<span class="off">${"★".repeat(3 - s)}</span></span>`;
+const starStr = (s) => `<span class="stars" role="img" aria-label="星${s}つ">${"★".repeat(s)}<span class="off">${"☆".repeat(3 - s)}</span></span>`; // 取れなかった星は白抜き（色だけで分けない）
 const RANKS = [[0, "見習い"], [10, "運転士"], [30, "ベテラン運転士"], [100, "名人運転士"]];
 const rankOf = (n) => RANKS.filter(([x]) => n >= x).pop()[1];
 const nextRank = (n) => RANKS.find(([x]) => x > n);
@@ -271,9 +425,12 @@ function nextAch(s) {
 }
 const nextLine = (s) => { const nx = nextAch(s); return nx ? `<p class="achnext" id="achnext">🎯 次の実績「${nx.name}」まで あと${nx.left}（${nx.n}/${nx.goal}）</p>` : ""; };
 
-function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); }
-const buzz = () => { try { navigator.vibrate && navigator.vibrate(10); } catch (e) {} };
-const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a id="f-fb" href="${FEEDBACK}" target="_blank" rel="noopener">感想を送る</a><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi で応援</a></footer>`;
+const calm = () => !!(window.A11y && window.A11y.on("calm")); // 動きを減らす設定（見やすさの設定・端末の「視差効果を減らす」）
+// 読み上げソフトへの知らせ（画面には出さない。toast も同じ文をここへ入れる）
+function speak(t) { const l = $("live"); if (!l) return; l.textContent = ""; requestAnimationFrame(() => (l.textContent = t)); }
+function toast(t, sr) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1600); speak(sr || t); }
+const buzz = (pat = 10) => { if (calm()) return; try { navigator.vibrate && navigator.vibrate(pat); } catch (e) {} };
+const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a href="#" data-a11y-open>見やすさ</a><a id="f-fb" href="${FEEDBACK}" target="_blank" rel="noopener">感想を送る</a><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi で応援</a></footer>`;
 function bindFooter() { const h = $("f-how"); if (h) h.onclick = (e) => { e.preventDefault(); openHow(); }; }
 function openHow() { $("fb2").href = FEEDBACK; const d = $("howto"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
 $("howto-ok").onclick = () => { const d = $("howto"); d.close ? d.close() : d.removeAttribute("open"); save((s) => { s.tut = true; }); };
@@ -283,11 +440,11 @@ const X = (p, i) => M + p.pts[i][0] * SP, Y = (p, i) => M + p.pts[i][1] * SP;
 function mapSvg(p, opt = {}) {
   const w = M * 2 + (p.W - 1) * SP, h = M * 2 + (p.H - 1) * SP + 8, key = (a, b) => (a < b ? a + "-" + b : b + "-" + a);
   const lines = p.edges.map(([a, b]) => `<line x1="${X(p, a)}" y1="${Y(p, a)}" x2="${X(p, b)}" y2="${Y(p, b)}" stroke="#fff" stroke-width="14" stroke-linecap="round"/>`).join("") +
-    p.edges.map(([a, b]) => `<line x1="${X(p, a)}" y1="${Y(p, a)}" x2="${X(p, b)}" y2="${Y(p, b)}" stroke="${p.color[key(a, b)]}" stroke-width="9" stroke-linecap="round"/>`).join("");
-  const sts = p.pts.map((_, i) => `<g class="st" id="st${i}"><circle cx="${X(p, i)}" cy="${Y(p, i)}" r="9" fill="#fff" stroke="#1f2328" stroke-width="3"/>${opt.names === false ? "" : `<text x="${X(p, i)}" y="${Y(p, i) + 24}" text-anchor="middle">${p.names[i]}</text>`}</g>`).join("");
+    p.edges.map(([a, b]) => `<line class="ln c${PALETTE.indexOf(p.color[key(a, b)])}" x1="${X(p, a)}" y1="${Y(p, a)}" x2="${X(p, b)}" y2="${Y(p, b)}" stroke="${p.color[key(a, b)]}" stroke-width="9" stroke-linecap="round"/>`).join("");
+  const sts = p.pts.map((_, i) => `<g class="st" id="st${i}"${opt.play ? ` role="button" tabindex="0" data-i="${i}"` : ""}><circle cx="${X(p, i)}" cy="${Y(p, i)}" r="9" fill="#fff" stroke="#1f2328" stroke-width="3"/>${opt.play ? `<rect class="ring" x="${X(p, i) - 16}" y="${Y(p, i) - 16}" width="32" height="32" rx="16"/>` : ""}${opt.names === false ? "" : `<text x="${X(p, i)}" y="${Y(p, i) + 24}" text-anchor="middle">${p.names[i]}</text>`}</g>`).join("");
   const tag = (i, t, c) => `<g><rect x="${X(p, i) - 11}" y="${Y(p, i) - 32}" width="22" height="18" rx="5" fill="${c}"/><text class="tag" x="${X(p, i)}" y="${Y(p, i) - 19}" text-anchor="middle">${t}</text></g>`;
   const route = opt.sol ? `<polyline id="won" points="${p.sol.map((i) => X(p, i) + "," + Y(p, i)).join(" ")}"/>` : `<polyline id="route" points=""/>`;
-  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="路線図 ${p.pts.length}駅">${lines}${route}${sts}${tag(p.s, "始", "#0a7a55")}${tag(p.e, "終", "#d4372c")}<circle id="train" class="train" r="11" fill="none" stroke="#e3a417" stroke-width="4" cx="-99" cy="-99"/></svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" ${opt.play ? `role="group" aria-label="路線図 ${p.pts.length}駅。駅を選んで Enter で進む"` : `role="img" aria-label="路線図 ${p.pts.length}駅"`}>${lines}${route}${sts}${tag(p.s, "始", "#0a7a55")}${tag(p.e, "終", "#d4372c")}<circle id="train" class="train" r="11" fill="none" stroke="#e3a417" stroke-width="4" cx="-99" cy="-99"/></svg>`;
 }
 
 // ---- ホーム ----
@@ -302,7 +459,7 @@ function home() {
   app.innerHTML = `
     <div class="sign"><div class="nm">路線図ひと筆</div><div class="yomi">ROSEN HITOFUDE</div><div class="bar"><span>始発</span><span>全部の駅を1回ずつ</span><span>終点</span></div></div>
     <div class="map hero" aria-hidden="true">${mapSvg(puzzle("p:1:20261104"), { names: false })}</div>
-    <p class="lead">始発から終点まで、全部の駅を1回ずつ。<br>道は1つだけ。だれでも同じ1日3路線。</p>
+    <p class="lead" data-a11y-say>始発から終点まで、全部の駅を1回ずつ。<br>道は1つだけ。だれでも同じ1日3路線。</p>
     ${done ? `<div class="share">今日の結果\n${SIZES.map((z, i) => `${z.name} ${"★".repeat(starsOf(done.h[i]))}`).join("　")}</div>` : ""}
     <button class="main" id="go-d">${done ? "今日の結果を見る" : run && run.mode === "d" ? `続きから（${SIZES[run.i].name}）` : `今日の3路線に乗る <small>#${dayNo(k)}</small>`}</button>
     ${done ? `<button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>` : ""}
@@ -362,15 +519,15 @@ function play() {
   const label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : "練習";
   app.innerHTML = `
     <header><button class="icon" id="back" aria-label="もどる">←</button>
-      ${run.tags.length > 1 ? `<div class="dots">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
+      ${run.tags.length > 1 ? `<div class="dots" role="img" aria-label="${run.tags.length}路線のうち${run.i + 1}つ目">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
       <span style="font-size:13px;color:var(--ink2)">${label}・${P.pts.length}駅</span></header>
-    <div class="sign"><div class="lr"><span id="prev">　</span><span id="nextn">　</span></div><div class="nm" id="here" style="font-size:24px;padding-top:2px">${P.names[P.s]}</div><div class="bar" style="height:8px"></div></div>
-    <div class="map" id="map">${mapSvg(P)}</div>
+    <div class="sign" data-a11y-say><div class="lr"><span id="prev">　</span><span id="nextn">　</span></div><div class="nm" id="here" style="font-size:24px;padding-top:2px">${P.names[P.s]}</div><div class="bar" style="height:8px"></div></div>
+    <div class="map" id="map">${mapSvg(P, { play: true })}</div>
     <div class="status"><span>通った駅</span><span class="bar"><i id="pbar"></i></span><span id="pnum"></span></div>
     <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
-    <p class="warn" id="warn" role="status" hidden></p>
+    <p class="warn" id="warn" role="status" data-a11y-say hidden></p>
     <div id="after"></div>
-    ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint">「始」から、線路でつながった駅を順に押すか、なぞってください。</p>` : ""}`;
+    ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint" data-a11y-say>「始」から、線路でつながった駅を順に押すか、なぞってください。キーボードでは矢印で駅を選び、Enter で進みます。</p>` : ""}`;
   $("back").onclick = home;
   $("undo").onclick = () => { if (!won && path.length > 1) { path.pop(); draw(); keep(); } };
   $("reset").onclick = () => { if (!won) { path = [P.s]; draw(); keep(); } };
@@ -400,7 +557,8 @@ function draw() {
   const vis = new Set(path), lost = won ? [] : lostOf(P, path);
   P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
   const stuck = !won && path.length < P.pts.length && !P.adj[cur].some((j) => !vis.has(j) && (j !== P.e || path.length === P.pts.length - 1));
-  const w = $("warn"); w.textContent = stuck ? "行き止まり。通った駅を押すと、そこまで戻れます" : lost.length ? "もう行けない駅ができました（赤い点線）" : ""; w.hidden = !w.textContent;
+  P.pts.forEach((_, i) => { const st = i === cur ? "いまいる駅" : vis.has(i) ? "通った駅" : lost.includes(i) ? "もう行けない駅" : "まだの駅"; $("st" + i).setAttribute("aria-label", `${P.names[i]}${i === P.s ? "（始発）" : i === P.e ? "（終点）" : ""}・${st}・となり ${P.adj[i].map((j) => P.names[j]).join("、")}`); });
+  const w = $("warn"); w.textContent = stuck ? "行き止まり。通った駅を押すと、そこまで戻れます" : lost.length ? "もう行けない駅ができました（点線の丸）" : ""; w.hidden = !w.textContent;
 }
 const flash = (i, c) => { const g = $("st" + i); if (!g) return; g.classList.remove(c); void g.getBBox(); g.classList.add(c); };
 function tryStep(i, tap) {
@@ -409,9 +567,9 @@ function tryStep(i, tap) {
   if (i === cur) return;
   const at = path.indexOf(i);
   if (at >= 0) { path = path.slice(0, at + 1); draw(); keep(); return; } // 通った駅を押すとそこまで戻る
-  if (!P.adj[cur].includes(i)) { if (tap) flash(i, "nope"); return; } // 線路がつながっていない駅は小さくゆれる（押したのは伝わる）
+  if (!P.adj[cur].includes(i)) { if (tap) { flash(i, "nope"); const t = `${P.names[cur]}から${P.names[i]}へは線路がつながっていません`; if (calm()) toast("線路がつながっていません", t); else speak(t); } return; } // 動きを減らしているとゆれが見えないので、文字でも知らせる // 線路がつながっていない駅は小さくゆれる（押したのは伝わる）
   if (i === P.e && path.length !== P.pts.length - 1) { toast("終点は最後に着きます"); return; }
-  path.push(i); buzz(); draw(); flash(i, "pop"); keep();
+  path.push(i); buzz(); draw(); flash(i, "pop"); keep(); if (path.length < P.pts.length) speak(`${P.names[i]}。のこり${P.pts.length - path.length}駅`);
   if (path.length === P.pts.length) win();
 }
 function nearest(ev) {
@@ -426,6 +584,17 @@ function bindMap() {
   m.onpointerdown = (e) => { down = true; last = nearest(e); tryStep(last, true); try { m.setPointerCapture(e.pointerId); } catch (x) {} };
   m.onpointermove = (e) => { if (!down) return; const i = nearest(e); if (i != null && i !== last) { last = i; if (path.length >= 2 && path[path.length - 2] === i) { path.pop(); draw(); keep(); } else if (!path.includes(i)) tryStep(i); } };
   m.onpointerup = m.onpointercancel = () => { down = false; last = null; };
+  // キーボード：矢印で駅を選び、Enter・スペースで進む（なぞらなくても押すだけで遊べる。WCAG 2.1.1・2.5.7）
+  m.onkeydown = (e) => {
+    const g = e.target.closest && e.target.closest(".st[data-i]"); if (!g) return;
+    const i = +g.dataset.i;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tryStep(i, true); return; }
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return;
+    e.preventDefault();
+    const [x, y] = P.pts[i]; let best = null, bd = Infinity;
+    P.pts.forEach(([qx, qy], j) => { const ax = (qx - x) * d[0] + (qy - y) * d[1], off = Math.abs((qx - x) * d[1]) + Math.abs((qy - y) * d[0]); if (ax <= 0) return; const sc = ax + off * 2; if (sc < bd) { bd = sc; best = j; } });
+    if (best != null) $("st" + best).focus();
+  };
 }
 function hint() {
   if (won) return;
@@ -435,7 +604,7 @@ function hint() {
   const g = $("st" + nx); g.classList.remove("hintst"); void g.getBBox(); g.classList.add("hintst");
   g.querySelector("circle").setAttribute("fill", "#e3a417");
   setTimeout(() => { if (!path.includes(nx)) g.querySelector("circle").setAttribute("fill", "#fff"); }, 2100);
-  toast(k < path.length || k === 0 ? "次は光った駅" : "ここまでは合っています。次は光った駅");
+  toast(k < path.length || k === 0 ? `次は光った駅（${P.names[nx]}）` : `ここまでは合っています。次は光った駅（${P.names[nx]}）`); // 光るのが見えにくい人にも駅名で伝える（光った駅と同じことだけ）
 }
 function win() {
   if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); }
@@ -447,11 +616,11 @@ function win() {
   const len = P.sol.length * SP * 1.2; pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len; pl.style.transition = "stroke-dashoffset 1.4s ease-in-out";
   svg.insertBefore(pl, $("route").nextSibling); requestAnimationFrame(() => requestAnimationFrame(() => (pl.style.strokeDashoffset = 0)));
   P.sol.forEach((i, j) => { const g = $("st" + i); g.classList.remove("pop"); g.style.animationDelay = ""; g.querySelector("circle").style.animationDelay = (j / P.sol.length * 1.4).toFixed(2) + "s"; g.classList.add("won-st"); }); // 金の線が通るのに合わせて駅が順に光る
-  try { navigator.vibrate && navigator.vibrate([15, 60, 15, 60, 30]); } catch (e) {}
+  buzz([15, 60, 15, 60, 30]);
   const r = s.runs[MODE], last = r && r.i >= r.tags.length;
-  $("after").innerHTML = `<div class="verdict" role="status"><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p>${achLine(newA)}<button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
+  $("after").innerHTML = `<div class="verdict" role="status" data-a11y-say><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p>${achLine(newA)}<button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
   $("next").onclick = play;
-  setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+  setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "nearest" }), 50);
 }
 function finish() {
   const s = load(), run = s.runs[MODE];

@@ -1,0 +1,9 @@
+{
+  "screens": [
+    { "name": "今日の3路線", "click": ["#go-d"] },
+    { "name": "練習", "click": ["#go-p"] },
+    { "name": "練習の特急", "click": ["#go-p", ".pick button[data-i='3']"] },
+    { "name": "乗車記録", "click": ["#go-cal"] },
+    { "name": "実績", "click": ["#go-ach"] }
+  ]
+}
