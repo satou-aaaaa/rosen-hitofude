@@ -289,6 +289,7 @@ try {
     check("あとから遊んだ日は late に残り、今日の記録・日ごとの記録・連続の日は増えない（3日前をつないでも連続2日のまま。開通の数には入る）", !!st.late && JSON.stringify(st.late.h) === "[0,0,0]" && st.days === 2 && !st.today && st.streak === 2 && st.cnt === 10 && !st.runA, JSON.stringify(st));
     check("あとから遊んでも、今日の途中経過（runs.d）は消えない", st.runD === 2, String(st.runD));
     check("あとから遊んだ結果：見出しに「あとから」・全部ヒントなしでも Ko-fi の1行を出さない・新しい実績が小さく出る", (await pl.textContent("header")).includes("あとから") && (await pl.locator(".kofi").count()) === 0 && (await pl.textContent(".achnew")).includes("取りこぼし回収"));
+    check("結果に「あと少しの実績」を1つだけ出す：まだの実績のうち目標にいちばん近いもの（取った・0のものは選ばない。研究の要点 12）", await pl.evaluate(() => { const g = window.__rh, s = g.load(), nx = g.nextAch(s), el = document.querySelectorAll("#achnext"); if (!nx) return false; const ok = g.ACH.every((a) => { const [n, t] = g.achProg_(s, a); return !(n > 0 && n < t) || n / t <= nx.r + 1e-12; }); return ok && el.length === 1 && el[0].textContent.includes(nx.name) && el[0].textContent.includes("あと" + nx.left) && !g.achGot(s).includes(nx.id); }));
     check("あとから遊んだ日のシェアの文に「あとから」と書き、駅名を出さない", /#\d+ \d+\/\d+（あとから）/.test(await pl.textContent(".share")) && !(await pl.evaluate(() => window.__rh.state().P.names.some((n) => document.querySelector(".share").textContent.includes(n)))));
     await pl.click("#go-cal");
     check("乗車記録：あとから遊んだ日は別の印（点線）で残り、もう押せない", (await pl.locator(".cal .c.late").count()) === 1 && (await pl.locator(`.misses button[data-d="${target}"]`).count()) === 0);
