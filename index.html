@@ -75,7 +75,6 @@ button.sub:disabled{opacity:.4;cursor:default}
 .verdict b{font-size:24px}
 .stars{color:var(--gold);letter-spacing:.1em;font-size:22px}
 .stars .off{color:#8b8f94}
-.life{font-size:18px;letter-spacing:2px;white-space:nowrap}.life .off{opacity:.25}
 .big{font-weight:800;font-size:26px;text-align:center;margin:0}
 .hero svg{width:100%;height:auto;display:block}
 .title{font-weight:800;font-size:38px;letter-spacing:.12em;text-align:center;margin:4px 0 0}
@@ -381,10 +380,12 @@ function puzzle(tag) { // tag: "d:<日付>:<0-2>" / "h:<日付>" / "p:<大きさ
 }
 const dailyTags = (k) => SIZES.map((_, i) => `d:${k}:${i}`);
 // とことん：各駅3 → 快速5 → 急行10 → 特急42路線を、毎回ちがう種で次々に出す（乱数は練習ととことんだけ。日付の種は使わない）
-const ELIFE = 3, ERAMP = [[0, 3], [1, 5], [2, 10], [3, 42]];
-function endlessList() { const out = [], seen = new Set(); for (const [sz, n] of ERAMP) for (let j = 0; j < n; j++) { let seed; do seed = Math.floor(Math.random() * 1e9); while (seen.has(seed)); seen.add(seed); out.push(`p:${sz}:${seed}`); } return out; }
+// 使い切ったら特急を20路線ずつ後ろに足して、「ここで降りる」まで終わらない（moreList。1回の中で同じ種は出さない）
+const ERAMP = [[0, 3], [1, 5], [2, 10], [3, 42]], EMORE = 20;
+function seedTags(ramp, seen) { const out = []; for (const [sz, n] of ramp) for (let j = 0; j < n; j++) { let seed; do seed = Math.floor(Math.random() * 1e9); while (seen.has(seed)); seen.add(seed); out.push(`p:${sz}:${seed}`); } return out; }
+const endlessList = () => seedTags(ERAMP, new Set());
+const moreList = (tags) => seedTags([[3, EMORE]], new Set(tags.map((t) => +t.split(":")[2])));
 const sizeOf = (tag) => { const z = +tag.split(":")[1]; return z === 3 ? HARD : SIZES[z]; };
-const lifeStr = (n) => "🎫".repeat(Math.max(0, n)) + `<span class="off">${"🎫".repeat(Math.max(0, ELIFE - n))}</span>`;
 
 // ---- 記録（この端末の localStorage だけ）----
 const fresh = () => ({ v: 1, days: {}, hdays: {}, late: {}, apark: {}, cnt: 0, clean: 0, runs: {}, tut: false, kofi: {}, ebest: 0 }); // ebest：とことんで開通させた路線の数の自己ベスト（今日の記録・連続・Ko-fi・シェアには数えない）
@@ -395,7 +396,9 @@ const doneOf = (r) => !!r && r.i >= r.tags.length, recOf = (r) => ({ h: r.hints 
 // 終わった今日・上級の回を日ごとの記録に入れる（結果を見る前に別のタブが次の日を保存しても、終えた日を失わない）
 const bookOf = (s, m) => (m === "d" ? s.days : m === "h" ? s.hdays : m === "a" ? (s.late = s.late || {}) : null);
 function bank(s, r) { const b = doneOf(r) ? bookOf(s, r.mode) : null; if (!b || b[r.date] || (r.mode === "a" && s.days[r.date])) return false; b[r.date] = recOf(r); return true; }
-function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); a = Object.assign(fresh(), a); b = Object.assign(fresh(), b); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; else if (y === undefined && x && typeof x === "object") s[k] = x; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 1000 + Math.min(r.curHints || 0, 999) : 0) /* 通った駅が多いほうを先に比べ、ヒントの数は同じ駅数のときだけ使う */, idOf = (r) => JSON.stringify([r.list || r.tags || null, r.id || null]); for (const d in o.apark || {}) { const x = o.apark[d], y = (n.apark || {})[d]; if (x && y && prog(x) > prog(y)) s.apark[d] = x; } s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = bookOf(s, r.mode); if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = m === "a" ? (n === a ? [x, y] : [y, x]) : x.date > y.date ? [x, y] : [y, x]; bank(s, l); if (m === "a" && !doneOf(l)) { s.apark = s.apark || {}; if (!s.apark[l.date] || prog(s.apark[l.date]) < prog(l)) s.apark[l.date] = l; } s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } const ca = s.runs.a, pa = ca && s.apark && s.apark[ca.date]; if (pa && !doneOf(pa) && !doneOf(ca) && prog(pa) > prog(ca)) { s.runs.a = pa; delete s.apark[pa.date]; } /* 同じ日の預けた途中経過のほうが進んでいれば、そちらで続ける */ return s; } // 保存に失敗したあとはメモリと保存の両方を読み（古い形の側にも late などの入れ物を補ってから）、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
+/* 回の見分け：とことんは路線を足すので並びでなく id で見る（2026-11-06 CodeRabbit） */
+function runId(r) { return JSON.stringify([r.id || r.list || r.tags || null]); }
+function load() { let a = null, b = null; try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {} try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {} if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null; if (!a || !b) return Object.assign(fresh(), a || b || {}); a = Object.assign(fresh(), a); b = Object.assign(fresh(), b); const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a]; const s = Object.assign(fresh(), n); for (const k in o) { if (k === "runs" || k === "t") continue; const x = o[k], y = n[k]; if (x && y && typeof x === "object" && typeof y === "object") { s[k] = Object.assign({}, x, y); for (const q in x) if (typeof x[q] === "number" && typeof y[q] === "number") s[k][q] = Math.max(x[q], y[q]); } else if (typeof x === "number" && typeof y === "number") s[k] = Math.max(x, y); else if (x === true) s[k] = true; else if (y === undefined && x && typeof x === "object") s[k] = x; } const ra = a.runs || {}, rb = b.runs || {}, prog = (r) => (r.res ? r.res.length : r.i || 0) * 1e6 + (r.path ? 1 + r.path.length * 1000 + Math.min(r.curHints || 0, 999) : 0) /* 通った駅が多いほうを先に比べ、ヒントの数は同じ駅数のときだけ使う */, idOf = runId; for (const d in o.apark || {}) { const x = o.apark[d], y = (n.apark || {})[d]; if (x && y && prog(x) > prog(y)) s.apark[d] = x; } s.runs = Object.assign({}, n.runs); for (const m of new Set([...Object.keys(ra), ...Object.keys(rb)])) { const x = ra[m], y = rb[m]; if (x === undefined || y === undefined) { if (x || y) s.runs[m] = x || y; continue; } if (!x || !y) { const r = x || y; if (!r || bank(s, r) || doneOf(r)) continue; const bd = bookOf(s, r.mode); if (bd && !bd[r.date]) s.runs[m] = r; continue; } if (x.date !== y.date) { const [w, l] = m === "a" ? (n === a ? [x, y] : [y, x]) : x.date > y.date ? [x, y] : [y, x]; bank(s, l); if (m === "a" && !doneOf(l)) { s.apark = s.apark || {}; if (!s.apark[l.date] || prog(s.apark[l.date]) < prog(l)) s.apark[l.date] = l; } s.runs[m] = w; } else if (idOf(x) === idOf(y)) { const px = prog(x), py = prog(y); s.runs[m] = px > py ? x : py > px ? y : n.runs[m]; } } const ca = s.runs.a, pa = ca && s.apark && s.apark[ca.date]; if (pa && !doneOf(pa) && !doneOf(ca) && prog(pa) > prog(ca)) { s.runs.a = pa; delete s.apark[pa.date]; } /* 同じ日の預けた途中経過のほうが進んでいれば、そちらで続ける */ return s; } // 保存に失敗したあとはメモリと保存の両方を読み（古い形の側にも late などの入れ物を補ってから）、記録（日ごとの結果・帳など）は合わせ、途中経過は新しい方（t が大きい方）を使う
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; } catch (e) { mem = j; } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
 const starsOf = (h) => (h === 0 ? 3 : h === 1 ? 2 : 1);
@@ -478,7 +481,7 @@ function home() {
     <p class="lead" data-a11y-say>始発から終点まで、全部の駅を1回ずつ。<br>道は1つだけ。だれでも同じ1日3路線。</p>
     ${done ? `<div class="share">今日の結果\n${SIZES.map((z, i) => `${z.name} ${"★".repeat(starsOf(done.h[i]))}`).join("　")}</div>` : ""}
     <button class="main" id="go-d">${done ? "今日の結果を見る" : run && run.mode === "d" ? `続きから（${SIZES[run.i].name}）` : `今日の3路線に乗る <small>#${dayNo(k)}</small>`}</button>
-    ${done ? `<button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>` : ""}
+    <button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>
     ${(() => { const re = s.runs.e && !doneOf(s.runs.e) ? s.runs.e : null; return `<button class="main alt" id="go-e">${re ? `とことんの続きから（${re.i + 1}路線目）` : "とことん：何路線開通できる？"}${s.ebest ? ` <small>自己ベスト ${s.ebest}路線</small>` : ""}</button>`; })()}
     <div class="row"><button class="sub" id="go-p">練習（何度でも）</button></div>
     ${miss.length ? `<button class="sub" id="go-late">↺ 取りこぼした日をあとから（${miss.length}日）</button>` : ""}
@@ -516,7 +519,7 @@ function startRun(mode, size, date) {
       for (const d of Object.keys(park)) if (!ok.includes(d)) delete park[d]; // 7日を過ぎた日・遊び終えた日の預かりは捨てる
       s.runs.a = back && !doneOf(back) && back.date === date ? back : { mode, date, tags: dailyTags(date), i: 0, hints: [], path: null }; return;
     } // その日の3路線と同じ問題（日付の種）。途中経過は runs.a に分けて置く
-    if (mode === "e") { if (r && !doneOf(r)) return; s.runs.e = { mode, date: k, tags: endlessList(), i: 0, hints: [], path: null, life: ELIFE, id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8) }; return; } // とことん：途中なら続きから（日をまたいでも続けられる）
+    if (mode === "e") { if (r && !doneOf(r)) return; s.runs.e = { mode, date: k, tags: endlessList(), i: 0, hints: [], path: null, id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8) }; return; } // とことん：途中なら続きから（日をまたいでも続けられる）。ヒントは何回でも（前の版のチケットの life は読まない）
     if (r && r.date === k && mode !== "p") return;
     if ((mode === "d" && s.days[k]) || (mode === "h" && s.hdays[k])) return; // 別のタブで今日の分を終えていたら、もう一度は始めない（ホームに戻る）
     const tags = mode === "d" ? dailyTags(k) : mode === "h" ? [`h:${k}`] : [`p:${size}:${Math.floor(Math.random() * 1e9)}`];
@@ -527,26 +530,26 @@ function startRun(mode, size, date) {
 }
 
 // ---- 遊ぶ ----
-let P = null, path = [], hints = 0, won = false, at = null, elife = 0; // at: 今の画面がどの回のどの路線か（古いタブの書き込みを止める）
+let P = null, path = [], hints = 0, won = false, at = null; // at: 今の画面がどの回のどの路線か（古いタブの書き込みを止める）
 function play() {
   const s = load(), run = s.runs[MODE];
   if (!run) return home();
   if (run.i >= run.tags.length) return finish();
   P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i };
   path = Array.isArray(run.path) && run.path[0] === P.s ? run.path.slice() : [P.s];
-  hints = run.curHints || 0; won = false; elife = run.life || 0;
+  hints = run.curHints || 0; won = false;
   const en = run.mode === "e", label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : en ? sizeOf(at.tag).name : "練習";
   app.innerHTML = `
     <header><button class="icon" id="back" aria-label="もどる">←</button>
-      ${en ? `<span class="life" id="life" aria-label="ヒントに使える回数 ${elife}">${lifeStr(elife)}</span><span style="font-size:13px;color:var(--ink2)">${label} ${run.i + 1}路線目${s.ebest ? `（ベスト ${s.ebest}）` : ""}</span></header>` : `${run.tags.length > 1 ? `<div class="dots" role="img" aria-label="${run.tags.length}路線のうち${run.i + 1}つ目">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
+      ${en ? `<span style="font-size:13px;color:var(--ink2)">${label} ${run.i + 1}路線目${s.ebest ? `（ベスト ${s.ebest}）` : ""}</span></header>` : `${run.tags.length > 1 ? `<div class="dots" role="img" aria-label="${run.tags.length}路線のうち${run.i + 1}つ目">${run.tags.map((_, j) => `<i class="${j < run.i ? "done" : j === run.i ? "on" : ""}"></i>`).join("")}</div>` : ""}
       <span style="font-size:13px;color:var(--ink2)">${label}・${P.pts.length}駅</span></header>`}
     <div class="sign" data-a11y-say><div class="lr"><span id="prev">　</span><span id="nextn">　</span></div><div class="nm" id="here" style="font-size:24px;padding-top:2px">${P.names[P.s]}</div><div class="bar" style="height:8px"></div></div>
     <div class="map" id="map">${mapSvg(P, { play: true })}</div>
     <div class="status"><span>通った駅</span><span class="bar"><i id="pbar"></i></span><span id="pnum"></span></div>
-    <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント${en ? "🎫" : ""}</button>`}</div>
+    <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
     <p class="warn" id="warn" role="status" data-a11y-say hidden></p>
     <div id="after"></div>
-    ${en ? `<p class="note">ヒント1回で🎫を1枚使います（🎫が無いとヒントは出ません）。</p><button class="sub" id="quit" style="width:100%">ここで降りる（${run.i}路線で終える）</button>` : ""}
+    ${en ? `<p class="note">ヒントは何回でも使えます。「ここで降りる」まで続きます。</p><button class="sub" id="quit" style="width:100%">ここで降りる（${run.i}路線で終える）</button>` : ""}
     ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint" data-a11y-say>「始」から、線路でつながった駅を順に押すか、なぞってください。キーボードでは矢印で駅を選び、Enter で進みます。</p>` : ""}`;
   $("back").onclick = home;
   $("undo").onclick = () => { if (!won && path.length > 1) { path.pop(); draw(); keep(); } };
@@ -574,7 +577,7 @@ function draw() {
   $("nextn").textContent = `のこり ${P.pts.length - path.length}駅`;
   $("pnum").textContent = `${path.length} / ${P.pts.length}`; $("pbar").style.width = (path.length / P.pts.length * 100) + "%";
   $("undo").disabled = $("reset").disabled = path.length <= 1 || won;
-  if ($("hint")) $("hint").disabled = won || (MODE === "e" && elife <= 0); // とことんは🎫が無いとヒントを出さない
+  if ($("hint")) $("hint").disabled = won;
   // 行き止まり・たどり着けなくなった駅を知らせる（答えは言わず、いまの道の結果だけ）
   const vis = new Set(path), lost = won ? [] : lostOf(P, path);
   P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
@@ -620,7 +623,6 @@ function bindMap() {
 }
 function hint() {
   if (won) return;
-  if (MODE === "e") { let ok = false; save((s) => { const r = s.runs.e; if (same(r) && (r.life || 0) > 0) { r.life--; ok = true; } elife = r ? r.life || 0 : 0; }); const l = $("life"); if (l) { l.innerHTML = lifeStr(elife); l.setAttribute("aria-label", "ヒントに使える回数 " + elife); } if (!ok) return draw(); } // とことんはヒント1回で🎫1枚
   let k = 0; while (k < path.length && path[k] === P.sol[k]) k++;
   path = P.sol.slice(0, Math.max(1, k)); hints++;
   const nx = P.sol[path.length]; draw(); keep();
@@ -633,7 +635,7 @@ function win() {
   if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); }
   won = true; draw();
   const st = starsOf(hints); let newA = [];
-  const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; s.cnt++; if (hints === 0) s.clean++; newA = claimAch(s); });
+  const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; if (r.mode === "e" && r.i >= r.tags.length) r.tags = r.tags.concat(moreList(r.tags)); /* とことんは使い切ったら特急を足して続ける */ s.cnt++; if (hints === 0) s.clean++; newA = claimAch(s); });
   const svg = $("map").querySelector("svg"), pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   pl.setAttribute("id", "won"); pl.setAttribute("points", P.sol.map((i) => X(P, i) + "," + Y(P, i)).join(" "));
   const len = P.sol.length * SP * 1.2; pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len; pl.style.transition = "stroke-dashoffset 1.4s ease-in-out";
@@ -748,7 +750,7 @@ function calView(ym) {
   bindFooter(); window.scrollTo(0, 0);
 }
 
-window.__rh = { mode: () => MODE, endlessList, ELIFE, ERAMP, sizeOf, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
+window.__rh = { mode: () => MODE, runId, endlessList, moreList, ERAMP, sizeOf, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
