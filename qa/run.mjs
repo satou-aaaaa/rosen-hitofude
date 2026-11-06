@@ -231,6 +231,7 @@ try {
     await pe.evaluate(() => { const k = "rosen-v1", s = JSON.parse(localStorage.getItem(k)); const r = s.runs.e; r.tags = r.tags.slice(0, 1); r.i = 0; r.path = null; r.curHints = 0; localStorage.setItem(k, JSON.stringify(s)); }); await pe.click("#back"); await pe.click("#go-e");
     await solveE();
     check("とことんの並びを使い切っても終わらず、特急を足して次の路線へ", await pe.evaluate(() => { const r = window.__rh.load().runs.e; return r.i === 1 && r.tags.length === 21 && r.tags[1].split(":")[1] === "3"; }) && (await pe.locator("#quit").count()) === 1 && (await pe.textContent("header")).includes("特急"));
+    check("路線を足した後も同じ回として見分ける（並びでなく id）", await pe.evaluate(() => { const g = window.__rh, r = g.load().runs.e, r2 = Object.assign({}, r, { tags: r.tags.slice(0, 1) }), o = Object.assign({}, r, { id: "other" }); return g.runId(r) === g.runId(r2) && g.runId(r) !== g.runId(o) && g.runId({ tags: ["a"] }) !== g.runId({ tags: ["b"] }); }));
     await pe.click("#quit");
     check("終わりの画面に「もう一度とことん」", (await pe.locator("#go-e.main").count()) === 1 && (await pe.textContent("#go-e")).includes("もう一度"));
     check("保存に失敗したあとの統合でも、自己ベストは大きいほうを残す", await pe.evaluate((K) => { const g = window.__rh, s0 = g.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 9, ebest: 2 })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 5, ebest: 7 }))); const r = g.load().ebest; mem = null; return r === 7; }, "rosen-v1"));
