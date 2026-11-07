@@ -529,6 +529,10 @@ try {
   try { // 引き継ぎコード（別の端末へ記録を移す。shared-workflows template/qa/transfer-check.mjs）
     await checkTransfer({ browser, url, game: "rosen-hitofude", sample: { "rosen-v1": JSON.stringify({ v: 1, tut: true }) }, check, open: async (p) => { await p.click("#howto-ok", { timeout: 1500 }).catch(() => {}); } });
   } catch (e) { check("引き継ぎコード", false, e.message.split("\n")[0]); }
+  // 保存に失敗したら知らせる（2026-11-07 暑さ指数よみで見つけた。黙って記録が消えないように）
+  { const ps = await browser.newPage(); await ps.goto(url); await ps.waitForTimeout(200);
+    check("保存に失敗したら、遊んでいる途中でも知らせる（1回だけ）", await ps.evaluate(async () => { const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; const n0 = document.querySelectorAll(".toast").length; save(() => {}); save(() => {}); await new Promise((r) => setTimeout(r, 50)); const ts = [...document.querySelectorAll(".toast")].slice(n0).map((d) => d.textContent); Storage.prototype.setItem = orig; save(() => {}); return ts.length === 1 && ts[0].includes("保存できませんでした"); }));
+    await ps.close(); }
   await browser.close();
 }
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));
