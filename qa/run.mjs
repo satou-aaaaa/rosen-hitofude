@@ -86,7 +86,9 @@ const cur = (page) => page.evaluate(() => window.__rh.state().path);
 try {
   const page = await newPage();
   check("はじめて開くと遊び方が出る", await page.locator("#howto[open]").count() === 1);
-  await page.click("#howto-ok");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(100); check("遊び方を Esc で閉じられる", await page.locator("#howto[open]").count() === 0);
+  await page.reload(); await page.waitForTimeout(200); check("遊び方を Esc で閉じても、開き直したとき出ない", await page.locator("#howto[open]").count() === 0);
+  await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); await page.click("#howto-ok"); await page.reload(); await page.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない", await page.locator("#howto[open]").count() === 0);
   check("連続の日が0のときは出さない（休んだ日を責めない）", !(await page.textContent("#app")).includes("連続"));
   check("遊ぶ前の画面に Ko-fi のひとことが無い", (await page.locator(".kofi").count()) === 0);
   check("はじめて開いた日から上級（特急）を押せる（好きなだけ遊べる・🔒で開くモードを入れない。2026-11-06 satou さん）", (await page.locator("#go-h").count()) === 1 && (await page.locator("#go-e").count()) === 1 && (await page.locator("#go-p").count()) === 1 && !/🔒|すると開く|で開きます|🎫/.test(await page.textContent("#app")));
