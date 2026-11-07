@@ -29,7 +29,7 @@ node qa/run.mjs   # 問題の作り方（答えが1つ・線路が交わらな�
 - 文字は少なめ・一画面一路線。お笑いの言葉は入れない（本物っぽさ優先。QA が見る）。ほかの作品の名前・キャラ・見た目は使わない。
 - 共有は遊ぶ人が押したときに開くリンク（X・LINE・Web Share・コピー）だけ。シェアの文に駅名（答え）を出さない。
 - 感想は「感想を送る」から GitHub の Issue フォーム（`.github/ISSUE_TEMPLATE/feedback.yml`、ラベル「感想」）を開くだけ。項目は shared-workflows の `template/.github/ISSUE_TEMPLATE/feedback.yml` と同じにし、名前・メールは聞かない。週1で shared-workflows `routines/game-feedback.md` が読んで直す。
-- 応援は Ko-fi（https://ko-fi.com/satouaaaaa）へのただのリンクだけ。今日の3路線・特急を初めてヒントなしで解いたときだけ、結果の画面の下に1行（共有フォルダ kofi/app-guide.md）。遊ぶのは無料のまま、有料版は置かない。
+- 応援は Ko-fi（<https://ko-fi.com/satouaaaaa>）へのただのリンクだけ。今日の3路線・特急を初めてヒントなしで解いたときだけ、結果の画面の下に1行（共有フォルダ kofi/app-guide.md）。遊ぶのは無料のまま、有料版は置かない。
 - 外へ通信しない。外から読むのは Google Fonts の文字だけ（CSP の `connect-src 'self'` を広げない）。記録は遊ぶ人のブラウザ（localStorage）だけ。
 - 押せる所は高さ44px以上、幅320pxの特急でも駅の間は40px以上（QA が見る）。駅は近くを押せば反応する（`nearest`）。
 - 一行の式の途中にコメント `//` を足さない（2026-11-04 行の残りが消えて画面が真っ白になったのを QA で見つけた）。機能を足す・直すたびに `qa/run.mjs` に検査を足す。乱数で組む部分は何百回も作って確かめる（shared-workflows `incidents/2026-10-31-roppo-empty-village.md`）。
