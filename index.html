@@ -76,7 +76,11 @@ button.sub:disabled{opacity:.4;cursor:default}
 .stars{color:var(--gold);letter-spacing:.1em;font-size:22px}
 .stars .off{color:#8b8f94}
 .big{font-weight:800;font-size:26px;text-align:center;margin:0}
-.hero svg{width:100%;height:auto;display:block}
+.hero svg{width:100%;height:auto;display:block;max-height:34vh}
+button.main small{font-size:13px;font-weight:700}
+button.main{flex-wrap:wrap;column-gap:8px;row-gap:0;text-wrap:balance}
+.won .row.ctl,.won .tut{display:none}
+.hint{text-wrap:balance}
 .title{font-weight:800;font-size:38px;letter-spacing:.12em;text-align:center;margin:4px 0 0}
 .lead{text-align:center;color:var(--ink2);margin:0;font-size:14px;line-height:1.7}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -114,6 +118,8 @@ footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:cente
 .st.nope circle{animation:nope .3s ease-in-out}
 @keyframes nope{25%{transform:translateX(-3px);stroke:#d4372c}75%{transform:translateX(3px);stroke:#d4372c}}
 .st.lost circle{stroke:var(--end);stroke-dasharray:4 3}
+.st.can circle{stroke:var(--accent);stroke-width:5}
+.st.can .ring{stroke:#0a7a5540;stroke-width:3}
 .st[tabindex]{cursor:pointer}
 .st .ring{fill:none;stroke:none;stroke-width:3.5;pointer-events:none}
 .st:focus-visible .ring{stroke:#1a5fd0}
@@ -123,6 +129,7 @@ html.a11y-cvd .ln.c0{stroke:#D55E00}html.a11y-cvd .ln.c1{stroke:#0072B2}html.a11
 html.a11y-cvd #route{stroke:#000;stroke-width:7;stroke-dasharray:none}
 html.a11y-cvd .st.lost circle{stroke:#D55E00;stroke-width:4;stroke-dasharray:3 3}
 html.a11y-cvd .st.hintst circle{stroke:#0072B2;stroke-width:5}
+html.a11y-cvd .st.can circle{stroke:#0072B2;stroke-width:6}
 html.a11y-cvd .dots i.on{background:#E69F00}html.a11y-cvd .dots i.done{background:#0072B2;border-color:#0072B2}
 html.a11y-cvd .stars{color:#B86E00}
 .warn{background:#fdecea;border:1px solid var(--end);color:#8f1d15;border-radius:12px;padding:8px 12px;font-size:14px;text-align:center;font-weight:700}
@@ -339,7 +346,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
 const { make, seedOf, rng, SIZES, HARD } = window.ROSEN, $ = (id) => document.getElementById(id), app = $("app");
 const SITE = "https://satou-aaaaa.github.io/rosen-hitofude/";
 const FEEDBACK = "https://github.com/satou-aaaaa/rosen-hitofude/issues/new?template=feedback.yml";
-const KEY = "rosen-v1", EPOCH = "2026-11-04", SP = 60, M = 26;
+const KEY = "rosen-v1", EPOCH = "2026-11-04", SP = 60, M = 26, TOP = 4; // TOP：いちばん上の段の駅の「始」「終」の札が切れないよう、札の上にあける幅
 const PALETTE = ["#e60012", "#0079c2", "#009944", "#f39700", "#9b7cb6", "#00a7db", "#c9a800", "#bb641d", "#e85298"];
 const PRE = ["桜", "港", "東", "西", "南", "北", "青", "若", "高", "新", "本", "中", "緑", "白", "宮", "森", "柳", "梅", "松", "竹", "泉", "旭", "栄", "朝", "星", "藤", "菊", "浦", "岩", "石", "鶴", "亀"];
 const SUF = ["台", "町", "橋", "坂", "原", "川", "野", "丘", "浜", "谷", "前", "田", "島", "崎", "沢", "口", "通", "園", "山", "宿"];
@@ -463,7 +470,8 @@ function mapSvg(p, opt = {}) {
   const sts = p.pts.map((_, i) => `<g class="st" id="st${i}"${opt.play ? ` role="button" tabindex="0" data-i="${i}"` : ""}><circle cx="${X(p, i)}" cy="${Y(p, i)}" r="9" fill="#fff" stroke="#1f2328" stroke-width="3"/>${opt.play ? `<rect class="ring" x="${X(p, i) - 16}" y="${Y(p, i) - 16}" width="32" height="32" rx="16"/>` : ""}${opt.names === false ? "" : `<text x="${X(p, i)}" y="${Y(p, i) + 24}" text-anchor="middle">${p.names[i]}</text>`}</g>`).join("");
   const tag = (i, t, c) => `<g><rect x="${X(p, i) - 11}" y="${Y(p, i) - 32}" width="22" height="18" rx="5" fill="${c}"/><text class="tag" x="${X(p, i)}" y="${Y(p, i) - 19}" text-anchor="middle">${t}</text></g>`;
   const route = opt.sol ? `<polyline id="won" points="${p.sol.map((i) => X(p, i) + "," + Y(p, i)).join(" ")}"/>` : `<polyline id="route" points=""/>`;
-  return `<svg viewBox="0 0 ${w} ${h}" ${opt.play ? `role="group" aria-label="路線図 ${p.pts.length}駅。駅を選んで Enter で進む"` : `role="img" aria-label="路線図 ${p.pts.length}駅"`}>${lines}${route}${sts}${tag(p.s, "始", "#0a7a55")}${tag(p.e, "終", "#d4372c")}<circle id="train" class="train" r="11" fill="none" stroke="#e3a417" stroke-width="4" cx="-99" cy="-99"/></svg>`;
+  const top = Math.max(0, ...[p.s, p.e].map((i) => TOP - (Y(p, i) - 32))); // 「始」「終」の札（駅の32上から）が図の上で切れるときだけ、上をあける
+  return `<svg viewBox="0 ${-top} ${w} ${h + top}" ${opt.play ? `role="group" aria-label="路線図 ${p.pts.length}駅。駅を選んで Enter で進む"` : `role="img" aria-label="路線図 ${p.pts.length}駅"`}>${lines}${route}${sts}${tag(p.s, "始", "#0a7a55")}${tag(p.e, "終", "#d4372c")}<circle id="train" class="train" r="11" fill="none" stroke="#e3a417" stroke-width="4" cx="-99" cy="-99"/></svg>`;
 }
 
 // ---- ホーム ----
@@ -481,7 +489,7 @@ function home() {
     <p class="lead" data-a11y-say>始発から終点まで、全部の駅を1回ずつ。<br>道は1つだけ。だれでも同じ1日3路線。</p>
     ${done ? `<div class="share">今日の結果\n${SIZES.map((z, i) => `${z.name} ${"★".repeat(starsOf(done.h[i]))}`).join("　")}</div>` : ""}
     <button class="main" id="go-d">${done ? "今日の結果を見る" : run && run.mode === "d" ? `続きから（${SIZES[run.i].name}）` : `今日の3路線に乗る <small>#${dayNo(k)}</small>`}</button>
-    <button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急（56マス・ヒントなし）"}</button>
+    <button class="main alt" id="go-h">${hdone ? "特急の結果を見る" : "上級：特急 <small>ヒントなし</small>"}</button>
     ${(() => { const re = s.runs.e && !doneOf(s.runs.e) ? s.runs.e : null; return `<button class="main alt" id="go-e">${re ? `とことんの続きから（${re.i + 1}路線目）` : "とことん：何路線開通できる？"}${s.ebest ? ` <small>自己ベスト ${s.ebest}路線</small>` : ""}</button>`; })()}
     <div class="row"><button class="sub" id="go-p">練習（何度でも）</button></div>
     ${miss.length ? `<button class="sub" id="go-late">↺ 取りこぼした日をあとから（${miss.length}日）</button>` : ""}
@@ -535,7 +543,7 @@ function play() {
   const s = load(), run = s.runs[MODE];
   if (!run) return home();
   if (run.i >= run.tags.length) return finish();
-  P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i };
+  P = puzzle(run.tags[run.i]); at = { tag: run.tags[run.i], i: run.i }; app.classList.remove("won");
   path = Array.isArray(run.path) && run.path[0] === P.s ? run.path.slice() : [P.s];
   hints = run.curHints || 0; won = false;
   const en = run.mode === "e", label = run.mode === "d" ? SIZES[run.i].name : run.mode === "a" ? `${md(run.date)} ${SIZES[run.i].name}` : run.mode === "h" ? "特急" : en ? sizeOf(at.tag).name : "練習";
@@ -546,11 +554,11 @@ function play() {
     <div class="sign" data-a11y-say><div class="lr"><span id="prev">　</span><span id="nextn">　</span></div><div class="nm" id="here" style="font-size:24px;padding-top:2px">${P.names[P.s]}</div><div class="bar" style="height:8px"></div></div>
     <div class="map" id="map">${mapSvg(P, { play: true })}</div>
     <div class="status"><span>通った駅</span><span class="bar"><i id="pbar"></i></span><span id="pnum"></span></div>
-    <div class="row"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
+    <div class="row ctl"><button class="sub" id="undo">ひとつ戻る</button><button class="sub" id="reset">始発に戻る</button>${run.mode === "h" ? "" : `<button class="sub" id="hint">ヒント</button>`}</div>
     <p class="warn" id="warn" role="status" data-a11y-say hidden></p>
     <div id="after"></div>
     ${en ? `<p class="note">ヒントは何回でも使えます。「ここで降りる」まで続きます。</p><button class="sub" id="quit" style="width:100%">ここで降りる（${run.i}路線で終える）</button>` : ""}
-    ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint" data-a11y-say>「始」から、線路でつながった駅を順に押すか、なぞってください。キーボードでは矢印で駅を選び、Enter で進みます。</p>` : ""}`;
+    ${!s.tut || (s.cnt === 0 && run.i === 0) ? `<p class="hint tut" data-a11y-say>「始」から、線路でつながった駅を順に押すか、なぞる</p>` : ""}`;
   $("back").onclick = home;
   $("undo").onclick = () => { if (!won && path.length > 1) { path.pop(); draw(); keep(); } };
   $("reset").onclick = () => { if (!won) { path = [P.s]; draw(); keep(); } };
@@ -581,6 +589,8 @@ function draw() {
   // 行き止まり・たどり着けなくなった駅を知らせる（答えは言わず、いまの道の結果だけ）
   const vis = new Set(path), lost = won ? [] : lostOf(P, path);
   P.pts.forEach((_, i) => $("st" + i).classList.toggle("lost", lost.includes(i)));
+  const can = won || MODE === "h" ? [] : P.adj[cur].filter((j) => !vis.has(j) && !lost.includes(j) && (j !== P.e || path.length === P.pts.length - 1)); // いま行ける駅：となりで、まだ通っていない駅だけ（どれが正しいかは言わない）
+  P.pts.forEach((_, i) => $("st" + i).classList.toggle("can", can.includes(i)));
   const stuck = !won && path.length < P.pts.length && !P.adj[cur].some((j) => !vis.has(j) && (j !== P.e || path.length === P.pts.length - 1));
   P.pts.forEach((_, i) => { const st = i === cur ? "いまいる駅" : vis.has(i) ? "通った駅" : lost.includes(i) ? "もう行けない駅" : "まだの駅"; $("st" + i).setAttribute("aria-label", `${P.names[i]}${i === P.s ? "（始発）" : i === P.e ? "（終点）" : ""}・${st}・となり ${P.adj[i].map((j) => P.names[j]).join("、")}`); });
   const w = $("warn"); w.textContent = stuck ? "行き止まり。通った駅を押すと、そこまで戻れます" : lost.length ? "もう行けない駅ができました（点線の丸）" : ""; w.hidden = !w.textContent;
@@ -599,7 +609,7 @@ function tryStep(i, tap) {
 }
 function nearest(ev) {
   const svg = $("map").querySelector("svg"), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
-  const x = (ev.clientX - r.left) / r.width * vb.width, y = (ev.clientY - r.top) / r.height * vb.height;
+  const x = vb.x + (ev.clientX - r.left) / r.width * vb.width, y = vb.y + (ev.clientY - r.top) / r.height * vb.height;
   let best = null, bd = (SP * 0.45) ** 2;
   P.pts.forEach((_, i) => { const d = (X(P, i) - x) ** 2 + (Y(P, i) - y) ** 2; if (d < bd) { bd = d; best = i; } });
   return best;
@@ -633,7 +643,7 @@ function hint() {
 }
 function win() {
   if (!same(load().runs[MODE])) { toast("別の画面で先に進んでいます"); return play(); }
-  won = true; draw();
+  won = true; draw(); app.classList.add("won"); // 使えなくなったボタンの列と最初の一言をしまい、開通の知らせを路線図のすぐ下に出す
   const st = starsOf(hints); let newA = [];
   const s = save((s) => { const r = s.runs[MODE]; if (!same(r)) return; r.hints.push(hints); r.i++; r.path = null; r.curHints = 0; if (r.mode === "e" && r.i >= r.tags.length) r.tags = r.tags.concat(moreList(r.tags)); /* とことんは使い切ったら特急を足して続ける */ s.cnt++; if (hints === 0) s.clean++; newA = claimAch(s); });
   const svg = $("map").querySelector("svg"), pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
@@ -750,7 +760,7 @@ function calView(ym) {
   bindFooter(); window.scrollTo(0, 0);
 }
 
-window.__rh = { mode: () => MODE, runId, endlessList, moreList, ERAMP, sizeOf, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
+window.__rh = { mode: () => MODE, runId, endlessList, moreList, ERAMP, sizeOf, play: (m) => { if (m) MODE = m; play(); }, puzzle, dailyTags, todayKey, dayNo, load, shareText, tryStep: (i) => tryStep(i), state: () => ({ path: path.slice(), P, won }), ACH, achGot, achProg, missedDays, lostOf, mapSvg, calView, achView, startRun, streak, playedDays, nextAch, achProg_: achProg };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>

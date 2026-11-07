@@ -268,6 +268,46 @@ try {
     const gap = await p4.evaluate(() => { const svg = document.querySelector("#map svg"); return svg.getBoundingClientRect().width / svg.viewBox.baseVal.width * 60; });
     check("幅320pxの特急でも、駅と駅の間が40px以上（押しまちがえにくい）", gap >= 40, `${gap.toFixed(0)}px`);
     await p4.close(); }
+  // 2026-11-07 UI/UX：はじめての人がスマホで迷わない（最初のボタンが見える・上級のボタンが1行・札が切れない・行ける駅・開通の知らせが近い）
+  for (const [w, h] of [[390, 844], [320, 640]]) {
+    const pu = await newPage(w, h); await pu.click("#howto-ok");
+    const hm = await pu.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(), svg = document.querySelector(".hero svg").getBoundingClientRect();
+      const tags = [...document.querySelectorAll(".hero svg rect[rx='5']")].map((e) => e.getBoundingClientRect());
+      const lines = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const bands = [];
+        for (const q of [...rg.getClientRects()].filter((q) => q.width > 0 && q.height > 0)) { const b = bands.find((b) => q.top < b.bottom && q.bottom > b.top); if (b) { b.top = Math.min(b.top, q.top); b.bottom = Math.max(b.bottom, q.bottom); } else bands.push({ top: q.top, bottom: q.bottom }); }
+        return bands.length; }; // 縦に重なる文字の箱は同じ行（<small> は上の位置がずれる）
+      return { d: r("go-d").bottom, h: r("go-h").height, hl: lines(document.getElementById("go-h")), e: r("go-e").bottom, over: document.documentElement.scrollWidth > innerWidth, tagOk: tags.length === 2 && tags.every((t) => t.top >= svg.top - 0.5) }; });
+    check(`${w}×${h}：ホームの「今日の3路線に乗る」が最初の画面に収まり、上級のボタンは1行・横にはみ出さない`, hm.d <= h && hm.hl === 1 && hm.h <= 56 && !hm.over && (w === 320 || hm.e <= h), JSON.stringify(hm));
+    check(`${w}×${h}：ホームの路線図で「始」「終」の札が上で切れない`, hm.tagOk);
+    await pu.click("#go-d");
+    const pl = await pu.evaluate(() => { const g = window.__rh, { P } = g.state(); const can = () => [...document.querySelectorAll("#map .st.can")].map((e) => +e.id.slice(2)).sort((a, b) => a - b);
+      const want = (path) => { const vis = new Set(path), c = path[path.length - 1], lost = g.lostOf(P, path); return P.adj[c].filter((j) => !vis.has(j) && !lost.includes(j) && (j !== P.e || path.length === P.pts.length - 1)).sort((a, b) => a - b); };
+      const a = JSON.stringify(can()) === JSON.stringify(want([P.s])); for (const i of P.sol.slice(1, 4)) g.tryStep(i);
+      const b = JSON.stringify(can()) === JSON.stringify(want(P.sol.slice(0, 4))) && can().length >= 1;
+      const tut = document.querySelector(".tut"); return { a, b, tutLines: tut ? Math.round(tut.getBoundingClientRect().height / parseFloat(getComputedStyle(tut).lineHeight || 20)) : 0, tutLen: tut ? tut.textContent.length : 0 }; });
+    check(`${w}×${h}：いま行ける駅（となりで、まだ通っていない駅）だけに緑の縁が付く（正しい駅は言わない）`, pl.a && pl.b, JSON.stringify(pl));
+    check(`${w}×${h}：はじめの一言は短い（30字以内）`, pl.tutLen > 0 && pl.tutLen <= 30, JSON.stringify(pl));
+    await pu.evaluate(() => { const g = window.__rh, { P } = g.state(); for (const i of P.sol.slice(4)) g.tryStep(i); });
+    await pu.waitForTimeout(150);
+    const wn = await pu.evaluate(() => ({ ctl: getComputedStyle(document.querySelector(".row.ctl")).display, can: document.querySelectorAll("#map .st.can").length, nx: document.querySelector(".verdict").getBoundingClientRect().top - document.getElementById("map").getBoundingClientRect().bottom }));
+    check(`${w}×${h}：開通したら使えないボタンの列をしまい、開通の知らせ（次の路線へ）を路線図のすぐ下（80px以内）に出す`, wn.ctl === "none" && wn.can === 0 && wn.nx < 80, JSON.stringify(wn));
+    await pu.click("#next");
+    check(`${w}×${h}：次の路線ではボタンの列がまた出る`, await pu.evaluate(() => getComputedStyle(document.querySelector(".row.ctl")).display !== "none" && !document.getElementById("app").classList.contains("won")));
+    await pu.close(); }
+  { // 上の段の「始」「終」の札は、どの大きさの路線図でも図の中に収まる（何百枚も作って見る）
+    const pz = await newPage(390, 844); await pz.click("#howto-ok");
+    const TOPv = Number((html.match(/\bTOP = (\d+(?:\.\d+)?)/) || [])[1]); // index.html の TOP（札の上にあける幅）と同じ値で見る
+    const r = await pz.evaluate((TOP) => { const g = window.__rh; let bad = 0, top = 0, extra = 0;
+      for (let z = 0; z < 4; z++) for (let s = 1; s <= 150; s++) { const P = g.puzzle(`p:${z}:${s * 7919}`), d = document.createElement("div"); d.innerHTML = g.mapSvg(P, {}); const vb = d.firstChild.getAttribute("viewBox").split(" ").map(Number);
+        const ys = [...d.querySelectorAll("rect[rx='5']")].map((e) => +e.getAttribute("y")); if (ys.some((y) => y < vb[1])) bad++; if (vb[1] < 0) top++;
+        if (ys.length && ys.every((y) => y >= TOP) && vb[1] < 0) extra++; } // 札が上の段に無いのに上をあけた図
+      return { bad, top, extra }; }, TOPv);
+    check("600枚の路線図で「始」「終」の札が図の上で切れない（上の段にあるときだけ上をあけ、それ以外はあけない）", Number.isFinite(TOPv) && r.bad === 0 && r.top > 0 && r.extra === 0, JSON.stringify({ TOP: TOPv, ...r }));
+    // 上級（特急）は行ける駅の印を出さない
+    await pz.evaluate(() => { const k = window.__rh.todayKey(); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, runs: { h: { mode: "h", date: k, tags: [`h:${k}`], i: 0, hints: [], path: null } }, kofi: {} })); });
+    await pz.reload(); await pz.evaluate(() => window.__rh.play("h"));
+    check("上級（特急）は行ける駅の印を出さない（ヒントなし）", (await pz.locator("#map .st.can").count()) === 0);
+    await pz.close(); }
   { // 実績：いまの記録から毎回数える。腕前・集める・続けるを混ぜ、まだのものは条件と進み具合
     const pa = await newPage(320, 700); await pa.click("#howto-ok");
     const r = await pa.evaluate(() => { const g = window.__rh, base = { v: 1, tut: true, days: {}, hdays: {}, late: {}, cnt: 0, clean: 0, runs: {}, kofi: {} };
