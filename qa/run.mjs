@@ -273,8 +273,11 @@ try {
     const pu = await newPage(w, h); await pu.click("#howto-ok");
     const hm = await pu.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(), svg = document.querySelector(".hero svg").getBoundingClientRect();
       const tags = [...document.querySelectorAll(".hero svg rect[rx='5']")].map((e) => e.getBoundingClientRect());
-      return { d: r("go-d").bottom, h: r("go-h").height, e: r("go-e").bottom, over: document.documentElement.scrollWidth > innerWidth, tagOk: tags.length === 2 && tags.every((t) => t.top >= svg.top - 0.5) }; });
-    check(`${w}×${h}：ホームの「今日の3路線に乗る」が最初の画面に収まり、上級のボタンは1行・横にはみ出さない`, hm.d <= h && hm.h <= 56 && !hm.over && (w === 320 || hm.e <= h), JSON.stringify(hm));
+      const lines = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const bands = [];
+        for (const q of [...rg.getClientRects()].filter((q) => q.width > 0 && q.height > 0)) { const b = bands.find((b) => q.top < b.bottom && q.bottom > b.top); if (b) { b.top = Math.min(b.top, q.top); b.bottom = Math.max(b.bottom, q.bottom); } else bands.push({ top: q.top, bottom: q.bottom }); }
+        return bands.length; }; // 縦に重なる文字の箱は同じ行（<small> は上の位置がずれる）
+      return { d: r("go-d").bottom, h: r("go-h").height, hl: lines(document.getElementById("go-h")), e: r("go-e").bottom, over: document.documentElement.scrollWidth > innerWidth, tagOk: tags.length === 2 && tags.every((t) => t.top >= svg.top - 0.5) }; });
+    check(`${w}×${h}：ホームの「今日の3路線に乗る」が最初の画面に収まり、上級のボタンは1行・横にはみ出さない`, hm.d <= h && hm.hl === 1 && hm.h <= 56 && !hm.over && (w === 320 || hm.e <= h), JSON.stringify(hm));
     check(`${w}×${h}：ホームの路線図で「始」「終」の札が上で切れない`, hm.tagOk);
     await pu.click("#go-d");
     const pl = await pu.evaluate(() => { const g = window.__rh, { P } = g.state(); const can = () => [...document.querySelectorAll("#map .st.can")].map((e) => +e.id.slice(2)).sort((a, b) => a - b);
@@ -293,11 +296,13 @@ try {
     await pu.close(); }
   { // 上の段の「始」「終」の札は、どの大きさの路線図でも図の中に収まる（何百枚も作って見る）
     const pz = await newPage(390, 844); await pz.click("#howto-ok");
-    const r = await pz.evaluate(() => { const g = window.__rh; let bad = 0, top = 0;
+    const TOPv = Number((html.match(/\bTOP = (\d+(?:\.\d+)?)/) || [])[1]); // index.html の TOP（札の上にあける幅）と同じ値で見る
+    const r = await pz.evaluate((TOP) => { const g = window.__rh; let bad = 0, top = 0, extra = 0;
       for (let z = 0; z < 4; z++) for (let s = 1; s <= 150; s++) { const P = g.puzzle(`p:${z}:${s * 7919}`), d = document.createElement("div"); d.innerHTML = g.mapSvg(P, {}); const vb = d.firstChild.getAttribute("viewBox").split(" ").map(Number);
-        const ys = [...d.querySelectorAll("rect[rx='5']")].map((e) => +e.getAttribute("y")); if (ys.some((y) => y < vb[1])) bad++; if (vb[1] < 0) top++; }
-      return { bad, top }; });
-    check("600枚の路線図で「始」「終」の札が図の上で切れない（上の段にあるときだけ上をあける）", r.bad === 0 && r.top > 0, JSON.stringify(r));
+        const ys = [...d.querySelectorAll("rect[rx='5']")].map((e) => +e.getAttribute("y")); if (ys.some((y) => y < vb[1])) bad++; if (vb[1] < 0) top++;
+        if (ys.length && ys.every((y) => y >= TOP) && vb[1] < 0) extra++; } // 札が上の段に無いのに上をあけた図
+      return { bad, top, extra }; }, TOPv);
+    check("600枚の路線図で「始」「終」の札が図の上で切れない（上の段にあるときだけ上をあけ、それ以外はあけない）", Number.isFinite(TOPv) && r.bad === 0 && r.top > 0 && r.extra === 0, JSON.stringify({ TOP: TOPv, ...r }));
     // 上級（特急）は行ける駅の印を出さない
     await pz.evaluate(() => { const k = window.__rh.todayKey(); localStorage.setItem("rosen-v1", JSON.stringify({ v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, runs: { h: { mode: "h", date: k, tags: [`h:${k}`], i: 0, hints: [], path: null } }, kofi: {} })); });
     await pz.reload(); await pz.evaluate(() => window.__rh.play("h"));
