@@ -107,7 +107,7 @@ dialog h2{margin:0 0 10px}
 dialog ol{padding-left:1.3em;margin:0 0 12px;line-height:1.8}
 dialog p{margin:0 0 10px;font-size:14px;line-height:1.7;color:var(--ink2)}
 dialog a{color:var(--accent);min-height:44px;display:inline-flex;align-items:center}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;z-index:9;box-shadow:0 6px 20px #0005}
+.toast{pointer-events:none;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-weight:700;z-index:9;box-shadow:0 6px 20px #0005}
 .hint{background:#fff8e6;border:1px solid var(--gold);border-radius:12px;padding:10px 12px;font-size:14px;text-align:center}
 footer{margin-top:auto;text-align:center;font-size:12px;color:var(--ink2);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:center}
@@ -658,7 +658,7 @@ function win() {
   P.sol.forEach((i, j) => { const g = $("st" + i); g.classList.remove("pop"); g.style.animationDelay = ""; g.querySelector("circle").style.animationDelay = (j / P.sol.length * 1.4).toFixed(2) + "s"; g.classList.add("won-st"); }); // 金の線が通るのに合わせて駅が順に光る
   buzz([15, 60, 15, 60, 30]);
   const r = s.runs[MODE], last = r && r.i >= r.tags.length;
-  if ($("quit")) $("quit").hidden = true;
+  if ($("quit") && r && r.mode === "e") $("quit").textContent = `ここで降りる（${r.i}路線で終える）`; // 開通した分も数える（隠すと正解の直後に降りられない）
   $("after").innerHTML = `<div class="verdict" role="status" data-a11y-say><b>開通！</b>${starStr(st)}<p class="note">${P.pts.length}駅を1回ずつ${hints ? `・ヒント${hints}回` : "・ヒントなし"}</p>${achLine(newA)}<button class="main" id="next">${last ? "結果を見る" : "次の路線へ"}</button></div>`;
   $("next").onclick = play;
   setTimeout(() => $("next") && $("next").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "nearest" }), 50);

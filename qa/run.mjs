@@ -216,6 +216,14 @@ try {
     check("とことんの並び（300回）：各駅3→快速5→急行10→特急42、同じ種は出ない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(); if (L.length !== 60 || new Set(L.map((t) => t.split(":")[2])).size !== 60) return false; if (!L.every((t, i) => t.split(":")[1] === String(i < 3 ? 0 : i < 8 ? 1 : i < 18 ? 2 : 3))) return false; } return true; }));
     check("とことんの路線は大きさどおりに作れて、答えが1本の道（各大きさ5本ずつ）", await pe.evaluate(() => { const g = window.__rh, L = g.endlessList(); return [0, 3, 8, 18].every((st) => L.slice(st, st + 5).every((t) => { const P = g.puzzle(t), z = g.sizeOf(t); return P.pts.length === z.W * z.H - z.holes && P.sol.length === P.pts.length && P.sol[0] === P.s && P.sol[P.sol.length - 1] === P.e; })); }));
     check("とことんを使い切ると特急を20路線足す（300回）：前の種と重ならない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(), M = g.moreList(L), A = L.concat(M); if (M.length !== 20 || !M.every((t) => t.split(":")[1] === "3") || new Set(A.map((t) => t.split(":")[2])).size !== 80) return false; } return true; }));
+    { // 開通した直後（次へを押す前）でも「ここで降りる」で終われ、その1路線が数に入る（前はボタンを隠していた。2026-11-17）
+      const pq = await newPage(); await pq.click("#howto-ok"); await pq.click("#go-e");
+      await pq.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); });
+      check("開通した直後も「ここで降りる」が出ていて、数は開通した1路線を入れた数", await pq.locator("#quit").isVisible() && (await pq.textContent("#quit")).includes("1路線で終える"), await pq.textContent("#quit"));
+      await pq.click("#quit");
+      check("開通した直後に「ここで降りる」を押すと結果の画面になり、開通した1路線が数に入る", (await pq.textContent("#eres")).includes("1路線"), await pq.textContent("#eres").catch(() => ""));
+      await pq.close();
+    }
     check("ホームに「とことん」の大きなボタン", (await pe.locator("#go-e.main").count()) === 1);
     await pe.click("#go-e");
     for (let j = 0; j < 3; j++) await solveE();
@@ -535,6 +543,10 @@ try {
     check("保存できない帯は画面のいちばん上に場所を取り（ボタンに重ならない）、読み上げの知らせにも出し、ほかの知らせのあとも警告が残る・保存できたら帯と警告が消え、ほかの知らせは残る", await ps.evaluate(async () => { const W = "保存できませんでした", tick = () => new Promise((r) => setTimeout(r, 50)); const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; save(() => {}); const b = document.getElementById("savewarn"); const top = !!b && document.body.firstElementChild === b && getComputedStyle(b).position === "sticky"; const l = document.getElementById("live"); let live = true, kept = true, other = true; if (l) { live = l.textContent.includes(W); l.textContent = ""; await tick(); l.textContent = "べつの知らせ"; await tick(); kept = l.textContent.includes("べつの知らせ") && l.textContent.includes(W); } Storage.prototype.setItem = orig; save(() => {}); await tick(); if (l) other = l.textContent === "べつの知らせ"; return top && live && kept && other && !document.getElementById("savewarn"); }));
     check("保存できない帯は、長い画面を下までスクロールしても画面の上に見えている（body の高さで止まらない）", await ps.evaluate(async () => { const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; save(() => {}); const pad = document.createElement("div"); pad.style.height = "3000px"; document.body.appendChild(pad); scrollTo(0, document.documentElement.scrollHeight); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); const b = document.getElementById("savewarn"), r = b && b.getBoundingClientRect(); const ok = !!r && scrollY > 1000 && r.top >= -1 && r.top < 5; pad.remove(); scrollTo(0, 0); Storage.prototype.setItem = orig; save(() => {}); return ok && !document.getElementById("savewarn"); }));
     await ps.close(); }
+{ // 知らせ（.toast）は下のボタンを塞がない（shared-workflows incidents/2026-11-17-known-game-bugs-spread.md）
+  const pt = await browser.newPage(); await pt.goto(url);
+  check("知らせ（.toast）が出ていても、その下のボタンを押せる（pointer-events:none）", await pt.evaluate(() => { const d = document.createElement("div"); d.className = "toast"; document.body.appendChild(d); const v = getComputedStyle(d).pointerEvents; d.remove(); return v === "none"; }));
+  await pt.close(); }
   await browser.close();
 }
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));
