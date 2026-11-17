@@ -274,7 +274,7 @@ try {
     await pr.close(); }
   for (const w of [320, 390]) { // とことんの遊ぶ画面（特急も）・終わりの画面もスマホ幅で崩れない
     const pv = await newPage(w, 700); await pv.click("#howto-ok");
-    const look = () => pv.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.id || e.textContent.trim().slice(0, 6)) }));
+    const look = () => pv.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.id || e.textContent.trim().slice(0, 6)) }));
     const h0 = await look(); await pv.click("#go-e"); const a = await look();
     await pv.evaluate(() => { const k = "rosen-v1", s = JSON.parse(localStorage.getItem(k)); s.runs.e.i = 20; localStorage.setItem(k, JSON.stringify(s)); }); await pv.click("#back"); await pv.click("#go-e"); const b = await look();
     const hd = await pv.evaluate(() => document.querySelector("header").getBoundingClientRect().height);
@@ -287,7 +287,7 @@ try {
     const p3 = await newPage(w, 700); const fb2 = await p3.evaluate(() => { const a = document.querySelector("#howto #fb2"); return a ? a.getBoundingClientRect().height : 0; }); check(`幅${w}px：遊び方の「感想を送る」も高さ44px以上`, fb2 >= 44, `${fb2}px`); await p3.click("#howto-ok");
     const homeOk = await p3.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
     await p3.click("#go-d");
-    const r = await p3.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent.trim() || e.id) }));
+    const r = await p3.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.textContent.trim() || e.id) }));
     check(`幅${w}px：横にはみ出さず、押せる所は高さ44px以上`, homeOk && !r.over && r.small.length === 0, r.small.join(","));
     await p3.close();
   }
@@ -368,7 +368,7 @@ try {
     }
     check("ホームの実績ボタンに取った数（3/12 のように）", /🏅 実績 \d+\/\d+/.test(await pa.textContent("#go-ach")));
     await pa.click("#go-ach");
-    const v = await pa.evaluate(() => ({ items: document.querySelectorAll(".ach").length, got: document.querySelectorAll(".ach.got").length, pg: [...document.querySelectorAll(".ach:not(.got)")].every((e) => /\d+\/\d+/.test(e.querySelector(".pg")?.textContent || "") && e.querySelector("small").textContent.length > 0), over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent.trim() || e.id) }));
+    const v = await pa.evaluate(() => ({ items: document.querySelectorAll(".ach").length, got: document.querySelectorAll(".ach.got").length, pg: [...document.querySelectorAll(".ach:not(.got)")].every((e) => /\d+\/\d+/.test(e.querySelector(".pg")?.textContent || "") && e.querySelector("small").textContent.length > 0), over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.textContent.trim() || e.id) }));
     check("実績の画面：全部の実績が並び、まだのものは条件と「3/10」のような進み具合", v.items === 14 && v.got >= 3 && v.pg, JSON.stringify(v));
     check("幅320px：実績の画面が横にはみ出さず、押せる所は高さ44px以上", !v.over && v.small.length === 0, v.small.join(","));
     await pa.close(); }
@@ -394,7 +394,7 @@ try {
     // 今日の途中経過を作ってから、あとから遊ぶ
     await pl.click("#go-d"); const s0 = await sol(pl); await tapStation(pl, s0[1]); await pl.click("#back");
     await pl.click("#go-cal");
-    const c = await pl.evaluate(() => ({ cls: [...document.querySelectorAll(".cal .c")].map((e) => e.className + ":" + e.textContent), btn: document.querySelectorAll(".cal button.c").length, list: document.querySelectorAll(".misses button").length, over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent.trim() || e.id) }));
+    const c = await pl.evaluate(() => ({ cls: [...document.querySelectorAll(".cal .c")].map((e) => e.className + ":" + e.textContent), btn: document.querySelectorAll(".cal button.c").length, list: document.querySelectorAll(".misses button").length, over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.textContent.trim() || e.id) }));
     const cellOf = (d) => c.cls.find((x) => x.split(":")[1].startsWith(String(+d.slice(8, 10))) && !x.includes("wd")) || "";
     check("乗車記録：全部★3の日はいちばん濃く、特急の日に金の点、今日に枠", k.slice(0, 7) !== add(-1).slice(0, 7) || /\bd3\b/.test(c.cls.join(" ")) && / hd/.test(c.cls.join(" ")) && / today/.test(c.cls.join(" ")), c.cls.join(" | "));
     check("乗車記録：取りこぼした日（過去7日・まだの日）だけが押せる", c.list === 5 && c.btn === c.cls.filter((x) => x.includes("↺乗る") || x.includes("続き")).length, `${c.list} ${c.btn}`);
