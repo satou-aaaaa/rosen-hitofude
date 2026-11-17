@@ -175,7 +175,7 @@ try {
     for (let j = 1; j < pts.length; j++) { const [x0, y0] = pts[j - 1], [x1, y1] = pts[j]; for (let t = 1; t <= 4; t++) await page.mouse.move(x0 + (x1 - x0) * t / 4, y0 + (y1 - y0) * t / 4); }
     await page.mouse.up();
     if (!(await page.locator(".verdict").count())) { const c = await cur(page); check(`${r + 2}路線目をなぞって解ける`, false, `${c.length}/${s.length} 止まった駅 ${s[c.length]} ${JSON.stringify(pts[c.length])} vp ${JSON.stringify(page.viewportSize())}`); break; }
-    if (r === 0) check("取った実績は2回目には出さない", (await page.locator(".verdict .achnew").count()) === 0);
+    if (r === 0) check("取った実績は2回目には出さない（戻らずに解いた2路線目は ✦ひと筆通しだけが新しく出る）", !((await page.locator(".verdict .achnew").allTextContents()).join("").includes("はじめての開通")));
     await page.click("#next");
   }
   check("なぞって解ける（ドラッグ）・3路線で結果へ", (await page.locator(".mini > div").count()) === 3);
@@ -216,6 +216,21 @@ try {
     check("とことんの並び（300回）：各駅3→快速5→急行10→特急42、同じ種は出ない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(); if (L.length !== 60 || new Set(L.map((t) => t.split(":")[2])).size !== 60) return false; if (!L.every((t, i) => t.split(":")[1] === String(i < 3 ? 0 : i < 8 ? 1 : i < 18 ? 2 : 3))) return false; } return true; }));
     check("とことんの路線は大きさどおりに作れて、答えが1本の道（各大きさ5本ずつ）", await pe.evaluate(() => { const g = window.__rh, L = g.endlessList(); return [0, 3, 8, 18].every((st) => L.slice(st, st + 5).every((t) => { const P = g.puzzle(t), z = g.sizeOf(t); return P.pts.length === z.W * z.H - z.holes && P.sol.length === P.pts.length && P.sol[0] === P.s && P.sol[P.sol.length - 1] === P.e; })); }));
     check("とことんを使い切ると特急を20路線足す（300回）：前の種と重ならない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(), M = g.moreList(L), A = L.concat(M); if (M.length !== 20 || !M.every((t) => t.split(":")[1] === "3") || new Set(A.map((t) => t.split(":")[2])).size !== 80) return false; } return true; }));
+    { // 挑戦条件「ひと筆通し」（2026-11-17）：ヒントなし・戻らずに開通で ✦。戻ると回数が出て数えない。★は変えない。途中で開き直しても戻った回数は残る
+      const pk = await newPage(); await pk.click("#howto-ok"); await pk.click("#go-e");
+      await pk.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); });
+      const k1 = await pk.evaluate(() => ({ t: document.querySelector(".verdict").textContent, n: window.__rh.load().straight }));
+      check("ヒントなし・戻らずに開通すると「✦ ひと筆通し」が出て数に入る", k1.t.includes("ひと筆通し") && !k1.t.includes("戻った回数") && k1.n === 1, JSON.stringify(k1));
+      await pk.click("#next");
+      await pk.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.sol[1]); g.tryStep(P.sol[2]); });
+      await pk.click("#undo");
+      await pk.reload(); await pk.click("#go-e");
+      const b1 = await pk.evaluate(() => window.__rh.load().runs.e.curBack);
+      await pk.evaluate(() => { const g = window.__rh, { P, path } = g.state(); for (const i of P.sol.slice(path.length)) g.tryStep(i); });
+      const k2 = await pk.evaluate(() => ({ t: document.querySelector(".verdict").textContent, n: window.__rh.load().straight, st: document.querySelector(".verdict .stars") && document.querySelector(".verdict .stars").getAttribute("aria-label") }));
+      check("「ひとつ戻る」は戻った回数に数え、開き直しても残り、開通しても ひと筆通しに数えない（★は3つのまま）", b1 === 1 && k2.t.includes("戻った回数 1") && k2.n === 1 && /3/.test(k2.st || ""), JSON.stringify({ b1, ...k2 }));
+      await pk.close();
+    }
     { // 開通した直後（次へを押す前）でも「ここで降りる」で終われ、その1路線が数に入る（前はボタンを隠していた。2026-11-17）
       const pq = await newPage(); await pq.click("#howto-ok"); await pq.click("#go-e");
       await pq.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); });
@@ -354,7 +369,7 @@ try {
     check("ホームの実績ボタンに取った数（3/12 のように）", /🏅 実績 \d+\/\d+/.test(await pa.textContent("#go-ach")));
     await pa.click("#go-ach");
     const v = await pa.evaluate(() => ({ items: document.querySelectorAll(".ach").length, got: document.querySelectorAll(".ach.got").length, pg: [...document.querySelectorAll(".ach:not(.got)")].every((e) => /\d+\/\d+/.test(e.querySelector(".pg")?.textContent || "") && e.querySelector("small").textContent.length > 0), over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent.trim() || e.id) }));
-    check("実績の画面：全部の実績が並び、まだのものは条件と「3/10」のような進み具合", v.items === 12 && v.got >= 3 && v.pg, JSON.stringify(v));
+    check("実績の画面：全部の実績が並び、まだのものは条件と「3/10」のような進み具合", v.items === 14 && v.got >= 3 && v.pg, JSON.stringify(v));
     check("幅320px：実績の画面が横にはみ出さず、押せる所は高さ44px以上", !v.over && v.small.length === 0, v.small.join(","));
     await pa.close(); }
   { // 乗車記録（カレンダー）と、取りこぼした過去7日をあとから遊ぶ。時計を40日進めて確かめる
