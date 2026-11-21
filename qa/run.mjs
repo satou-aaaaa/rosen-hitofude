@@ -414,6 +414,8 @@ try {
     check("結果に「あと少しの実績」を1つだけ出す：まだの実績のうち目標にいちばん近いもの（取った・0のものは選ばない。研究の要点 12）", await pl.evaluate(() => { const g = window.__rh, s = g.load(), nx = g.nextAch(s), el = document.querySelectorAll("#achnext"); if (!nx) return false; const ok = g.ACH.every((a) => { const [n, t] = g.achProg_(s, a); return !(n > 0 && n < t) || n / t <= nx.r + 1e-12; }); return ok && el.length === 1 && el[0].textContent.includes(nx.name) && el[0].textContent.includes("あと" + nx.left) && !g.achGot(s).includes(nx.id); }));
     check("あとから遊んだ日のシェアの文に「あとから」と書き、駅名を出さない", /#\d+ \d+\/\d+（あとから）/.test(await pl.textContent(".share")) && !(await pl.evaluate(() => window.__rh.state().P.names.some((n) => document.querySelector(".share").textContent.includes(n)))));
     await pl.click("#go-cal");
+    // あとから遊んだ日が前の月のとき（今日が月の1〜3日）は、前の月を開いて見る（2026-11-22 時計を40日進めると 2027-01-01 になり落ちた）
+    if (target.slice(0, 7) !== k.slice(0, 7)) await pl.click("#cal-prev");
     check("乗車記録：あとから遊んだ日は別の印（点線）で残り、もう押せない", (await pl.locator(".cal .c.late").count()) === 1 && (await pl.locator(`.misses button[data-d="${target}"]`).count()) === 0);
     check("乗車記録の画面でも、あとから遊んだ日で連続の日は増えない（連続2日のまま）", (await pl.textContent("#app")).includes("連続2日") && !(await pl.textContent("#app")).includes("連続3日"));
     { // A日を途中まで→B日を始める→A日に戻ると続きから（runs.a を黙って消さない。2026-11-04 星座つなぎで CodeRabbit が指摘）
