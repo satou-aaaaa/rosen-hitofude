@@ -12,6 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const url = pathToFileURL(path.join(root, "index.html")).href; // # などを含むフォルダ名でも開ける
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 
 // 1. 問題の作り方（ブラウザを使わない）。乱数で組むので何千回も作って毎回確かめる（shared-workflows incidents/2026-10-31-roppo-empty-village.md）
 const sb = {}; sb.globalThis = sb; vm.runInNewContext(readFileSync(path.join(root, "gen.js"), "utf8"), sb);
@@ -87,12 +88,12 @@ const sol = (page) => page.evaluate(() => window.__rh.state().P.sol);
 const cur = (page) => page.evaluate(() => window.__rh.state().path);
 try {
   const page = await newPage();
-  check("はじめて開くと遊び方が出る", await page.locator("#howto[open]").count() === 1);
+  check("はじめて開くと遊び方が出る", await page.locator("#core-coach").count() === 1);
   await page.keyboard.press("Escape"); await page.waitForTimeout(100); check("遊び方を Esc で閉じられる", await page.locator("#howto[open]").count() === 0);
   await page.reload(); await page.waitForTimeout(200); check("遊び方を Esc で閉じても、開き直したとき出ない", await page.locator("#howto[open]").count() === 0);
-  await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); await page.click("#howto-ok"); await page.reload(); await page.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない", await page.locator("#howto[open]").count() === 0);
+  await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); await firstClose(page); await page.reload(); await page.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない", await page.locator("#howto[open]").count() === 0);
   { let again = 0; for (let i = 0; i < 10; i++) { await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); await page.keyboard.press("Escape"); await page.reload(); await page.waitForTimeout(200); again += await page.locator("#howto[open]").count(); } check("遊び方を Esc で閉じてすぐ読み直しても出ない（10回）", again === 0); }
-  await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); check("「わかった」を押したその場で「見た」が残る", await page.locator("#howto-ok").evaluate((b) => { b.click(); return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); }));
+  await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(200); check("はじめての練習が始まったその場で「見た」が残る", await page.evaluate(() => { return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); })); await firstClose(page);
   check("連続の日が0のときは出さない（休んだ日を責めない）", !(await page.textContent("#app")).includes("連続"));
   check("遊ぶ前の画面に Ko-fi のひとことが無い", (await page.locator(".kofi").count()) === 0);
   check("はじめて開いた日から上級（特急）を押せる（好きなだけ遊べる・🔒で開くモードを入れない。2026-11-06 satou さん）", (await page.locator("#go-h").count()) === 1 && (await page.locator("#go-e").count()) === 1 && (await page.locator("#go-p").count()) === 1 && !/🔒|すると開く|で開きます|🎫/.test(await page.textContent("#app")));
@@ -211,13 +212,13 @@ try {
   await page.close();
 
   { // とことん：次々に出る・各駅→快速→急行→特急・ヒントは何回でも（🎫なし。2026-11-06 satou さん「好きなだけ遊んでほしい」）・降りると自己ベスト（2026-11-05 satou さん「一日で遊べる量が少なすぎる」）
-    const pe = await newPage(); await pe.click("#howto-ok");
+    const pe = await newPage(); await firstClose(pe);
     const solveE = async () => { await pe.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); }); await pe.click("#next"); };
     check("とことんの並び（300回）：各駅3→快速5→急行10→特急42、同じ種は出ない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(); if (L.length !== 60 || new Set(L.map((t) => t.split(":")[2])).size !== 60) return false; if (!L.every((t, i) => t.split(":")[1] === String(i < 3 ? 0 : i < 8 ? 1 : i < 18 ? 2 : 3))) return false; } return true; }));
     check("とことんの路線は大きさどおりに作れて、答えが1本の道（各大きさ5本ずつ）", await pe.evaluate(() => { const g = window.__rh, L = g.endlessList(); return [0, 3, 8, 18].every((st) => L.slice(st, st + 5).every((t) => { const P = g.puzzle(t), z = g.sizeOf(t); return P.pts.length === z.W * z.H - z.holes && P.sol.length === P.pts.length && P.sol[0] === P.s && P.sol[P.sol.length - 1] === P.e; })); }));
     check("とことんを使い切ると特急を20路線足す（300回）：前の種と重ならない", await pe.evaluate(() => { const g = window.__rh; for (let n = 0; n < 300; n++) { const L = g.endlessList(), M = g.moreList(L), A = L.concat(M); if (M.length !== 20 || !M.every((t) => t.split(":")[1] === "3") || new Set(A.map((t) => t.split(":")[2])).size !== 80) return false; } return true; }));
     { // 挑戦条件「ひと筆通し」（2026-11-17）：ヒントなし・戻らずに開通で ✦。戻ると回数が出て数えない。★は変えない。途中で開き直しても戻った回数は残る
-      const pk = await newPage(); await pk.click("#howto-ok"); await pk.click("#go-e");
+      const pk = await newPage(); await firstClose(pk); await pk.click("#go-e");
       await pk.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); });
       const k1 = await pk.evaluate(() => ({ t: document.querySelector(".verdict").textContent, n: window.__rh.load().straight }));
       check("ヒントなし・戻らずに開通すると「✦ ひと筆通し」が出て数に入る", k1.t.includes("ひと筆通し") && !k1.t.includes("戻った回数") && k1.n === 1, JSON.stringify(k1));
@@ -232,7 +233,7 @@ try {
       await pk.close();
     }
     { // 開通した直後（次へを押す前）でも「ここで降りる」で終われ、その1路線が数に入る（前はボタンを隠していた。2026-11-17）
-      const pq = await newPage(); await pq.click("#howto-ok"); await pq.click("#go-e");
+      const pq = await newPage(); await firstClose(pq); await pq.click("#go-e");
       await pq.evaluate(() => { const g = window.__rh, { P } = g.state(); g.tryStep(P.s); for (const i of P.sol.slice(1)) g.tryStep(i); });
       check("開通した直後も「ここで降りる」が出ていて、数は開通した1路線を入れた数", await pq.locator("#quit").isVisible() && (await pq.textContent("#quit")).includes("1路線で終える"), await pq.textContent("#quit"));
       await pq.click("#quit");
@@ -266,14 +267,14 @@ try {
     check("保存に失敗したあとの統合でも、自己ベストは大きいほうを残す", await pe.evaluate((K) => { const g = window.__rh, s0 = g.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 9, ebest: 2 })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 5, ebest: 7 }))); const r = g.load().ebest; mem = null; return r === 7; }, "rosen-v1"));
     await pe.close(); }
   { // 今日の3路線の結果に「続けて遊ぶ：とことん」
-    const pr = await newPage(); await pr.click("#howto-ok"); await pr.click("#go-d");
+    const pr = await newPage(); await firstClose(pr); await pr.click("#go-d");
     for (let j = 0; j < 3; j++) { await pr.evaluate(() => { const g = window.__rh, { P } = g.state(); for (const i of P.sol.slice(1)) g.tryStep(i); }); await pr.click("#next"); }
     check("今日の3路線の結果に「続けて遊ぶ：とことん」の大きなボタン", (await pr.locator("#go-e.main").count()) === 1 && (await pr.textContent("#go-e")).includes("とことん"));
     await pr.click("#go-e");
     check("結果の画面からとことんを始められる", (await pr.evaluate(() => window.__rh.mode())) === "e" && (await pr.textContent("header")).includes("1路線目"));
     await pr.close(); }
   for (const w of [320, 390]) { // とことんの遊ぶ画面（特急も）・終わりの画面もスマホ幅で崩れない
-    const pv = await newPage(w, 700); await pv.click("#howto-ok");
+    const pv = await newPage(w, 700); await firstClose(pv);
     const look = () => pv.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.id || e.textContent.trim().slice(0, 6)) }));
     const h0 = await look(); await pv.click("#go-e"); const a = await look();
     await pv.evaluate(() => { const k = "rosen-v1", s = JSON.parse(localStorage.getItem(k)); s.runs.e.i = 20; localStorage.setItem(k, JSON.stringify(s)); }); await pv.click("#back"); await pv.click("#go-e"); const b = await look();
@@ -284,14 +285,14 @@ try {
     await pv.close(); }
   // スマホ幅：はみ出さない・押せる所は44px以上・駅の押せる広さ
   for (const w of [320, 390]) {
-    const p3 = await newPage(w, 700); const fb2 = await p3.evaluate(() => { const a = document.querySelector("#howto #fb2"); return a ? a.getBoundingClientRect().height : 0; }); check(`幅${w}px：遊び方の「感想を送る」も高さ44px以上`, fb2 >= 44, `${fb2}px`); await p3.click("#howto-ok");
+    const p3 = await newPage(w, 700); await firstClose(p3).then(() => p3.click("#f-how")); const fb2 = await p3.evaluate(() => { const a = document.querySelector("#howto #fb2"); return a ? a.getBoundingClientRect().height : 0; }); check(`幅${w}px：遊び方の「感想を送る」も高さ44px以上`, fb2 >= 44, `${fb2}px`); await firstClose(p3);
     const homeOk = await p3.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
     await p3.click("#go-d");
     const r = await p3.evaluate(() => ({ over: document.documentElement.scrollWidth > innerWidth, small: [...document.querySelectorAll("button, a")].filter((e) => e.offsetParent && Math.round(e.getBoundingClientRect().height) < 44).map((e) => e.textContent.trim() || e.id) }));
     check(`幅${w}px：横にはみ出さず、押せる所は高さ44px以上`, homeOk && !r.over && r.small.length === 0, r.small.join(","));
     await p3.close();
   }
-  { const p4 = await newPage(320, 700); await p4.click("#howto-ok");
+  { const p4 = await newPage(320, 700); await firstClose(p4);
     await p4.evaluate(() => { const k = window.__rh.todayKey(); const s = { v: 1, tut: true, days: {}, hdays: {}, cnt: 0, clean: 0, runs: { h: { mode: "h", date: k, tags: [`h:${k}`], i: 0, hints: [], path: null } }, kofi: {} }; localStorage.setItem("rosen-v1", JSON.stringify(s)); });
     await p4.reload(); await p4.evaluate(() => window.__rh.play("h"));
     const gap = await p4.evaluate(() => { const svg = document.querySelector("#map svg"); return svg.getBoundingClientRect().width / svg.viewBox.baseVal.width * 60; });
@@ -299,7 +300,7 @@ try {
     await p4.close(); }
   // 2026-11-07 UI/UX：はじめての人がスマホで迷わない（最初のボタンが見える・上級のボタンが1行・札が切れない・行ける駅・開通の知らせが近い）
   for (const [w, h] of [[390, 844], [320, 640]]) {
-    const pu = await newPage(w, h); await pu.click("#howto-ok");
+    const pu = await newPage(w, h); await firstClose(pu);
     const hm = await pu.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(), svg = document.querySelector(".hero svg").getBoundingClientRect();
       const tags = [...document.querySelectorAll(".hero svg rect[rx='5']")].map((e) => e.getBoundingClientRect());
       const lines = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); const bands = [];
@@ -324,7 +325,7 @@ try {
     check(`${w}×${h}：次の路線ではボタンの列がまた出る`, await pu.evaluate(() => getComputedStyle(document.querySelector(".row.ctl")).display !== "none" && !document.getElementById("app").classList.contains("won")));
     await pu.close(); }
   { // 上の段の「始」「終」の札は、どの大きさの路線図でも図の中に収まる（何百枚も作って見る）
-    const pz = await newPage(390, 844); await pz.click("#howto-ok");
+    const pz = await newPage(390, 844); await firstClose(pz);
     const TOPv = Number((html.match(/\bTOP = (\d+(?:\.\d+)?)/) || [])[1]); // index.html の TOP（札の上にあける幅）と同じ値で見る
     const r = await pz.evaluate((TOP) => { const g = window.__rh; let bad = 0, top = 0, extra = 0;
       for (let z = 0; z < 4; z++) for (let s = 1; s <= 150; s++) { const P = g.puzzle(`p:${z}:${s * 7919}`), d = document.createElement("div"); d.innerHTML = g.mapSvg(P, {}); const vb = d.firstChild.getAttribute("viewBox").split(" ").map(Number);
@@ -338,7 +339,7 @@ try {
     check("上級（特急）は行ける駅の印を出さない（ヒントなし）", (await pz.locator("#map .st.can").count()) === 0);
     await pz.close(); }
   { // 実績：いまの記録から毎回数える。腕前・集める・続けるを混ぜ、まだのものは条件と進み具合
-    const pa = await newPage(320, 700); await pa.click("#howto-ok");
+    const pa = await newPage(320, 700); await firstClose(pa);
     const r = await pa.evaluate(() => { const g = window.__rh, base = { v: 1, tut: true, days: {}, hdays: {}, late: {}, cnt: 0, clean: 0, runs: {}, kofi: {} };
       const got = (o) => g.achGot(Object.assign({}, base, o)).sort().join(",");
       const d = (n) => new Date(Date.UTC(2026, 10, 4 + n)).toISOString().slice(0, 10), many = (from, n, h = [1, 1, 1]) => Object.fromEntries(Array.from({ length: n }, (_, i) => [d(from + i), { h }]));
@@ -373,7 +374,7 @@ try {
     check("幅320px：実績の画面が横にはみ出さず、押せる所は高さ44px以上", !v.over && v.small.length === 0, v.small.join(","));
     await pa.close(); }
   { // 乗車記録（カレンダー）と、取りこぼした過去7日をあとから遊ぶ。時計を40日進めて確かめる
-    const pl = await newPage(320, 700, 40); await pl.click("#howto-ok");
+    const pl = await newPage(320, 700, 40); await firstClose(pl);
     const k = await pl.evaluate(() => window.__rh.todayKey()), add = (n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10);
     // 何百日分：取りこぼした日は過去7日のうち遊んでいない日だけ・はじめの日より前は無い・あとからの問題はその日の3路線と同じ
     const many = await pl.evaluate(() => { const g = window.__rh, EP = "2026-11-04", add = (k, n) => new Date(Date.parse(k) + n * 864e5).toISOString().slice(0, 10), errs = [];
@@ -437,7 +438,7 @@ try {
     const pb = await browser.newPage({ viewport: { width: 390, height: 844 } });
     pb.on("pageerror", (e) => errors.push(e.message));
     await pb.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error("blocked"); }; });
-    await pb.goto(url); await pb.click("#howto-ok"); await pb.click("#go-d");
+    await pb.goto(url); await firstClose(pb); await pb.click("#go-d");
     check("保存できないブラウザでも、今日の1問目が始まる", (await pb.locator("#map svg").count()) === 1);
     await pb.click("#back");
     check("保存できないブラウザでも、遊び方が何度も開かない", !(await pb.locator("#howto[open]").count()));
@@ -490,7 +491,7 @@ try {
     check("時計が戻っても、保存の時刻 t は前より大きくなる", await pn.evaluate((K) => { const s0 = JSON.parse(localStorage.getItem(K)); const far = Date.now() + 1e9; localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: far }))); save(() => {}); return JSON.parse(localStorage.getItem(K)).t > far; }, "rosen-v1"));
     await pn.close(); }
   { // 色だけで分けない・キーボードだけで遊べる・読み上げに知らせる（shared-workflows routines/game-dev.md「だれでも遊べるように」A1・A6・A7・A8）
-    const pk = await newPage(); await pk.click("#howto-ok"); await pk.click("#go-d");
+    const pk = await newPage(); await firstClose(pk); await pk.click("#go-d");
     const S = await sol(pk);
     const a = await pk.evaluate(() => { const g = [...document.querySelectorAll("#map .st")]; return { n: g.length, btn: g.every((e) => e.getAttribute("role") === "button" && e.getAttribute("tabindex") === "0" && /・(いまいる駅|まだの駅|通った駅|もう行けない駅)・となり /.test(e.getAttribute("aria-label") || "")), role: document.querySelector("#map svg").getAttribute("role"), live: document.querySelector("#live")?.getAttribute("aria-live"), dots: document.querySelector(".dots")?.getAttribute("aria-label") || "", hOn: document.querySelector(".dots i.on").getBoundingClientRect().height, hNext: document.querySelector(".dots i:not(.on):not(.done)").getBoundingClientRect().height, nextBg: getComputedStyle(document.querySelector(".dots i:not(.on):not(.done)")).backgroundColor }; });
     check("駅は全部キーボードで選べるボタン（role=button・tabindex）で、名前と「いまいる・通った・まだ・もう行けない」・となりの駅を読み上げる", a.n > 0 && a.btn && a.role === "group", JSON.stringify(a).slice(0, 200));
@@ -517,7 +518,7 @@ try {
     await pv.addInitScript(() => { try { localStorage.setItem("a11y-v1", JSON.stringify({ cvd: true, calm: true })); } catch (e) {} window.__vib = 0; try { Object.defineProperty(navigator, "vibrate", { value: () => { window.__vib++; return true; }, configurable: true }); } catch (e) {} });
     pv.on("pageerror", (e) => errors.push(e.message));
     await pv.goto(url); await pv.evaluate(() => { const k = Object.keys(localStorage).filter((x) => x !== "a11y-v1"); k.forEach((x) => localStorage.removeItem(x)); }); await pv.reload();
-    await pv.click("#howto-ok"); await pv.click("#go-d");
+    await firstClose(pv); await pv.click("#go-d");
     const Sv = await sol(pv);
     const cv = await pv.evaluate(() => { const ok = ["#D55E00", "#0072B2", "#009E73", "#E69F00", "#CC79A7", "#56B4E9", "#B8A000", "#8C5A2B", "#7F3C8D"].map((h) => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)})`); const ls = [...document.querySelectorAll("#map .ln")]; return ls.length > 0 && ls.every((l) => ok.includes(getComputedStyle(l).stroke)); });
     check("色の見分けを助ける設定で、路線の色がカラーユニバーサルデザインの組に替わる", cv);
@@ -537,7 +538,7 @@ try {
   try { // キーボードで選んだボタンに枠が出る（all:unset のカレンダーのます目でも消えない。2026-11-04 CodeRabbit の指摘）。止まっても失敗として記録し、レポートまで進む
     const pf = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await pf.goto(url); await pf.evaluate(() => localStorage.clear()); await pf.reload();
-    await pf.click("#howto-ok").catch(() => {});
+    await firstClose(pf).catch(() => {});
     const bad = [];
     for (const open of [null, "#go-cal"]) {
       if (open) await pf.click(open);
@@ -552,7 +553,7 @@ try {
     await pf.close();
   } catch (e) { check("キーボードで選んだボタン（カレンダーのあとから遊ぶ日も）に枠が出る", false, e.message.split("\n")[0]); }
   try { // 引き継ぎコード（別の端末へ記録を移す。shared-workflows template/qa/transfer-check.mjs）
-    await checkTransfer({ browser, url, game: "rosen-hitofude", sample: { "rosen-v1": JSON.stringify({ v: 1, tut: true }) }, check, open: async (p) => { await p.click("#howto-ok", { timeout: 1500 }).catch(() => {}); } });
+    await checkTransfer({ browser, url, game: "rosen-hitofude", sample: { "rosen-v1": JSON.stringify({ v: 1, tut: true }) }, check, open: async (p) => { await firstClose(p).catch(() => {}); } });
   } catch (e) { check("引き継ぎコード", false, e.message.split("\n")[0]); }
   // 保存に失敗したら知らせる（2026-11-07 暑さ指数よみで見つけた。黙って記録が消えないように）
   { const ps = await browser.newPage(); await ps.goto(url); await ps.waitForTimeout(200);
