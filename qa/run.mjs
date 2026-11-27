@@ -44,6 +44,8 @@ for (const [label, list, N] of [["各駅", [SIZES[0]], 1500], ["快速", [SIZES[
   check("いちばん大きい特急でも1問を0.5秒以内に作れる（スマホで待たせない）", ms < 500, `${ms.toFixed(0)}ms`); }
 
 const html = readFileSync(path.join(root, "index.html"), "utf8");
+// ひな形の写し（<!-- 名前:begin〜end -->）はゲームの言葉ではないので外し、Core.kofi・Core.KOFI は写す前の形にもどして見る（shared-workflows の sync-template が足した）
+const gameOwn = (t) => t.replace(/<!-- ([a-z0-9-]+):begin[\s\S]*?<!-- \1:end -->/g, "").split("${Core.KOFI}").join("https://ko-fi.com/satouaaaaa").replace(/Core\.kofi\(("(?:[^"\\]|\\.)*"), ("(?:[^"\\]|\\.)*")\)/g, (m, a, b) => "`<p class=\"note kofi\">" + JSON.parse(a) + "、<a href=\"https://ko-fi.com/satouaaaaa\" target=\"_blank\" rel=\"noopener\">Ko-fi でコーヒー1杯の応援</a>をもらえると、" + JSON.parse(b) + "の励みになります（任意・遊ぶのはずっと無料）。</p>`");
 check("終えた回を消すのは同じ回のときだけ・0時を過ぎたホームの「今日」のボタンは描き直す（2026-11-04 CodeRabbit）", /c\.date === run\.date && c\.id === run\.id\) s2\.runs\[MODE\] = null/.test(html) && /\$\("go-d"\)\.onclick = \(\) => \(k !== todayKey\(\) \? home\(\)/.test(html));
 check("別のタブで今日の分を終えたあと、古い画面から今日・上級をもう一度始めない（2026-11-04 CodeRabbit）", /\(mode === "d" && s\.days\[k\]\) \|\| \(mode === "h" && s\.hdays\[k\]\)\) return;/.test(html));
 check("README の URL のすぐ後ろに全角の字を続けない（Link check が URL の一部と読む。2026-11-04）", !/https?:\/\/[\x21-\x7e]*[^\x00-\x7f]/.test(readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\]\(https?:\/\/[^)\s]+\)/g, "").replace(/<https?:\/\/[^>\s]+>/g, "")));
@@ -52,8 +54,8 @@ const ext = [...html.matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]
 check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない", ext.length === 0, ext.join(","));
 check("CSP で通信先を自分だけにしている", /connect-src 'self'/.test(html) && !/connect-src[^;"]*https/.test(html));
 check("Math.random は練習・とことんの種だけ（今日の3路線・特急は日付の乱数）", (html.match(/Math\.random/g) || []).length === 3 && !/Math\.random/.test(readFileSync(path.join(root, "gen.js"), "utf8")));
-check("好きなだけ遊べる：🎫・回数の制限・「…すると開く」を画面に入れない（2026-11-06 satou さん）", !/🎫|ELIFE|lifeStr|すると開く|で開きます/.test(html));
-check("Ko-fi はページ下の1行と、結果の画面の1行（.kofi）だけ", (html.match(/ko-fi\.com\/satouaaaaa/g) || []).length === 2 && /<footer>[^\n]*ko-fi\.com/.test(html) && /class="note kofi"/.test(html));
+check("好きなだけ遊べる：🎫・回数の制限・「…すると開く」を画面に入れない（2026-11-06 satou さん）", !/🎫|ELIFE|lifeStr|すると開く|で開きます/.test(gameOwn(html)));
+check("Ko-fi はページ下の1行と、結果の画面の1行（.kofi）だけ", (gameOwn(html).match(/ko-fi\.com\/satouaaaaa/g) || []).length === 2 && /<footer>[^\n]*ko-fi\.com/.test(gameOwn(html)) && /class="note kofi"/.test(gameOwn(html)));
 check("画面にお笑いの言葉を入れない（本物っぽく）", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん|（うそ）/.test(html));
 { const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
@@ -183,7 +185,7 @@ try {
   check("なぞって解ける（ドラッグ）・3路線で結果へ", (await page.locator(".mini > div").count()) === 3);
   const share = await page.textContent(".share");
   check("シェアの文に番号と3路線の星があり、駅名（答え）は出さない", /路線図ひと筆 #\d+/.test(share) && /各駅 ★★☆/.test(share) && /急行 ★★★/.test(share) && !(await page.evaluate(() => window.__rh.state().P.names.some((n) => document.querySelector(".share").textContent.includes(n)))));
-  check("X・LINE は押したときに開くリンクだけ", /^https:\/\/twitter\.com\/intent\/tweet\?text=/.test(await page.getAttribute("#toX", "href")) && /^https:\/\/line\.me\/R\/share\?text=/.test(await page.getAttribute("#toLine", "href")));
+  check("X・LINE は押したときに開くリンクだけ", /^https:\/\/(?:x|twitter)\.com\/intent\/tweet\?text=/.test(await page.getAttribute("#toX", "href")) && /^https:\/\/line\.me\/R\/share\?text=/.test(await page.getAttribute("#toLine", "href")));
   check("ヒントを使った日は Ko-fi のひとことを出さない", (await page.locator(".kofi").count()) === 0);
   await page.click("#back");
   check("ホームで乗った日1・開通3・ヒントなし2・連続1日（1以上なので小さく出す）・今日の結果を見るに変わる", (await page.textContent(".stats")).replace(/\s/g, "") === "1乗った日3開通した路線2ヒントなし" && (await page.textContent(".rank .streak")) === "連続1日" && (await page.textContent("#go-d")).includes("今日の結果"));
